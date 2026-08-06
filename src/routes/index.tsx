@@ -8,7 +8,9 @@ import { ReferralTab } from "@/components/tabs/ReferralTab";
 import { TasksTab } from "@/components/tabs/TasksTab";
 import { WithdrawTab } from "@/components/tabs/WithdrawTab";
 import { Num, ToastHost } from "@/components/ui-kit";
+import { ADMIN_TG_IDS } from "@/lib/config";
 import { initAnalytics } from "@/lib/firebase";
+
 import { claimSecurityBonus, useUser } from "@/lib/store";
 import { currentTgUser, initTelegram } from "@/lib/telegram";
 
@@ -43,11 +45,15 @@ const TABS: { id: TabId; label: string; icon: string }[] = [
 ];
 
 function adminIds() {
-  return String(import.meta.env["VITE_ADMIN_CHAT_IDS"] ?? "")
-    .split(",")
-    .map((s) => s.trim())
-    .filter(Boolean);
+  return [
+    ...ADMIN_TG_IDS,
+    ...String(import.meta.env["VITE_ADMIN_CHAT_IDS"] ?? "")
+      .split(",")
+      .map((s) => s.trim())
+      .filter(Boolean),
+  ];
 }
+
 
 function App() {
   return (
