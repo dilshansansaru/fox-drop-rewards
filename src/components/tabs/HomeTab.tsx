@@ -35,12 +35,14 @@ export function HomeTab({ user }: { user: UserDoc }) {
         icon="🦊"
         title="FOXDROP System Guide"
         steps={[
-          { do: "Security check එක pass කරන්න", reward: `${REWARDS.securityCheckTokens} FOX` },
-          { do: "Main / Partner / Community tasks කරන්න", reward: `up to 700 FOX + ${REWARDS.mainTaskUsdt} USDT per main task` },
-          { do: `Daily ${REWARDS.dailyAdsGoal} ads බලන්න`, reward: "10–100 FOX per ad" },
-          { do: "Friends invite කරන්න", reward: `${REWARDS.referralTokens} FOX + ${REWARDS.referralUsdt} USDT each` },
-          { do: `Friend day1 ${REWARDS.day1AdsGoal} ads / day2 ${REWARDS.day2AdsGoal} ads`, reward: `${REWARDS.day1Usdt} + ${REWARDS.day2Usdt} USDT` },
-          { do: `USDT withdraw (min ${REWARDS.minWithdraw})`, reward: `Paid within 24h · fee ${REWARDS.withdrawFee} USDT` },
+          { do: "Pass the security check", reward: `${REWARDS.securityCheckTokens} FOX` },
+          { do: "Complete Main / Partner / Community tasks", reward: `up to 700 FOX + ${REWARDS.mainTaskUsdt} USDT per main task` },
+          { do: `Watch ${REWARDS.dailyAdsGoal} ads daily`, reward: "10–100 FOX per ad" },
+          { do: "Ad tasks: 10 / 20 / 50 ads watched in total", reward: "0.002 / 0.005 / 0.01 USDT" },
+          { do: "Invite friends", reward: `${REWARDS.referralTokens} FOX + ${REWARDS.referralUsdt} USDT each` },
+          { do: "Referral tasks: 5 / 10 / 25 / 75 friends invited", reward: "0.005 / 0.01 / 0.03 / 0.1 USDT" },
+          { do: `Friend watches day 1 ${REWARDS.day1AdsGoal} ads / day 2 ${REWARDS.day2AdsGoal} ads`, reward: `${REWARDS.day1Usdt} + ${REWARDS.day2Usdt} USDT` },
+          { do: `Withdraw USDT (min ${REWARDS.minWithdraw})`, reward: `Paid within 24h · fee ${REWARDS.withdrawFee} USDT` },
         ]}
         note="FOX tokens exchange to USDT in 2027 Q2 · 1 FOX = $0.001 · BEP-20 (BSC)."
       />

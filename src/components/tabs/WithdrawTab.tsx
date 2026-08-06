@@ -65,11 +65,12 @@ export function WithdrawTab({ user }: { user: UserDoc }) {
         icon="💰"
         title="Withdraw Guide"
         steps={[
-          { do: "All main tasks complete කරන්න", reward: `FOX + ${REWARDS.mainTaskUsdt} USDT each` },
-          { do: `Friends ${REWARDS.dailyReferGoal} ක් invite කරන්න`, reward: `${REWARDS.referralUsdt} USDT + ${REWARDS.referralTokens} FOX each` },
-          { do: `Today ${REWARDS.dailyAdsGoal} ads බලන්න`, reward: "up to 100 FOX per ad" },
-          { do: `USDT balance ${REWARDS.minWithdraw} වෙනකම් එකතු කරන්න`, reward: "Withdraw unlocks" },
-          { do: "BEP-20 address දාලා withdraw request කරන්න", reward: `Paid in 24h (fee ${REWARDS.withdrawFee} USDT)` },
+          { do: "Complete all main tasks", reward: `FOX + ${REWARDS.mainTaskUsdt} USDT each` },
+          { do: `Invite ${REWARDS.dailyReferGoal} friends`, reward: `${REWARDS.referralUsdt} USDT + ${REWARDS.referralTokens} FOX each` },
+          { do: `Watch ${REWARDS.dailyAdsGoal} ads today`, reward: "up to 100 FOX per ad" },
+          { do: "Claim ad tasks (10 / 20 / 50 ads) and referral tasks (5 / 10 / 25 / 75 friends)", reward: "0.002–0.1 USDT each" },
+          { do: `Build your USDT balance up to ${REWARDS.minWithdraw}`, reward: "Withdraw unlocks" },
+          { do: "Enter your BEP-20 address and request a withdrawal", reward: `Paid in 24h (fee ${REWARDS.withdrawFee} USDT)` },
         ]}
         note={`FOX → USDT exchange (1 FOX = $${TOKEN_PRICE_USD}) opens in 2027 Q2 on ${NETWORK}.`}
       />

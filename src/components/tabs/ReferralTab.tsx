@@ -1,8 +1,9 @@
 import { Btn, Card, Num, SectionTitle, useToast } from "@/components/ui-kit";
-import { BRAND, REWARDS } from "@/lib/config";
+import { BRAND, REFER_TASK_MILESTONES, REWARDS } from "@/lib/config";
 import { useReferrals, type ReferralStatus, type UserDoc } from "@/lib/store";
 import { openLink } from "@/lib/telegram";
 import { GuideBox } from "@/components/GuideBox";
+import { MilestoneList } from "@/components/MilestoneList";
 
 const STATUS: Record<ReferralStatus, { label: string; cls: string }> = {
   pending: { label: "⏳ Pending", cls: "text-muted-foreground" },
@@ -38,9 +39,13 @@ export function ReferralTab({ user }: { user: UserDoc }) {
         icon="👥"
         title="Referral Guide"
         steps={[
-          { do: "Your link එකෙන් friend කෙනෙක් join කරයි", reward: `${REWARDS.referralTokens} FOX + ${REWARDS.referralUsdt} USDT instantly` },
-          { do: `Friend එයාගේ day 1 එකේ ${REWARDS.day1AdsGoal} ads බලයි`, reward: `${REWARDS.day1Usdt} USDT to you` },
-          { do: `Friend එයාගේ day 2 එකේ ${REWARDS.day2AdsGoal} ads බලයි`, reward: `${REWARDS.day2Usdt} USDT to you` },
+          { do: "A friend joins with your referral link", reward: `${REWARDS.referralTokens} FOX + ${REWARDS.referralUsdt} USDT instantly` },
+          { do: `Your friend watches ${REWARDS.day1AdsGoal} ads on their day 1`, reward: `${REWARDS.day1Usdt} USDT to you` },
+          { do: `Your friend watches ${REWARDS.day2AdsGoal} ads on their day 2`, reward: `${REWARDS.day2Usdt} USDT to you` },
+          { do: "Referral task: invite 5 friends", reward: "0.005 USDT" },
+          { do: "Referral task: invite 10 friends", reward: "0.01 USDT" },
+          { do: "Referral task: invite 25 friends", reward: "0.03 USDT" },
+          { do: "Referral task: invite 75 friends", reward: "0.1 USDT" },
         ]}
         note="Progress updates in real time. Same-device / same-IP fake accounts are blocked automatically."
       />
@@ -59,6 +64,20 @@ export function ReferralTab({ user }: { user: UserDoc }) {
           </div>
         </div>
       </Card>
+
+      <MilestoneList
+        user={user}
+        icon="🏆"
+        title="Referral Tasks"
+        progress={user.refCount ?? 0}
+        unit="friends"
+        items={REFER_TASK_MILESTONES.map((m) => ({
+          key: m.key,
+          label: `Invite ${m.count} friends`,
+          goal: m.count,
+          usdt: m.usdt,
+        }))}
+      />
 
       <Card>
         <p className="mb-2 text-xs uppercase tracking-widest text-muted-foreground">Your link</p>

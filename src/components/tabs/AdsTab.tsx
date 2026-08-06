@@ -1,9 +1,10 @@
 import { useState } from "react";
 import { Btn, Card, Num, Progress, SectionTitle, useToast } from "@/components/ui-kit";
-import { AD_PROVIDERS, REWARDS, type AdProviderId } from "@/lib/config";
+import { AD_PROVIDERS, AD_TASK_MILESTONES, REWARDS, type AdProviderId } from "@/lib/config";
 import { showAd } from "@/lib/ads";
 import { awardAd, type UserDoc } from "@/lib/store";
 import { GuideBox } from "@/components/GuideBox";
+import { MilestoneList } from "@/components/MilestoneList";
 
 export function AdsTab({ user }: { user: UserDoc }) {
   const [busy, setBusy] = useState<AdProviderId | null>(null);
@@ -39,12 +40,13 @@ export function AdsTab({ user }: { user: UserDoc }) {
         icon="📺"
         title="Ads Guide"
         steps={[
-          { do: "Adsgram AI ad එකක් බලන්න (daily 20)", reward: "100 FOX per ad" },
-          { do: "Monetag ad එකක් බලන්න (daily 15)", reward: "50 FOX per ad" },
-          { do: "GigaPub ad එකක් බලන්න (daily 10)", reward: "50 FOX per ad" },
-          { do: "Tower Ads ad එකක් බලන්න (daily 50)", reward: "10 FOX per ad" },
-          { do: `Day 1: watch ${REWARDS.day1AdsGoal} ads`, reward: `${REWARDS.day1Usdt} USDT` },
-          { do: `Day 2: watch ${REWARDS.day2AdsGoal} ads`, reward: `${REWARDS.day2Usdt} USDT` },
+          { do: "Watch an Adsgram AI ad (daily limit 20)", reward: "100 FOX per ad" },
+          { do: "Watch a Monetag ad (daily limit 15)", reward: "50 FOX per ad" },
+          { do: "Watch a GigaPub ad (daily limit 10)", reward: "50 FOX per ad" },
+          { do: "Watch a Tower Ads ad (daily limit 50)", reward: "10 FOX per ad" },
+          { do: "Ad task: watch 10 ads in total", reward: "0.002 USDT" },
+          { do: "Ad task: watch 20 ads in total", reward: "0.005 USDT" },
+          { do: "Ad task: watch 50 ads in total", reward: "0.01 USDT" },
         ]}
         note={`Daily goal ${REWARDS.dailyAdsGoal} ads. Each ad must be watched fully — rewards credit instantly.`}
       />
@@ -55,7 +57,24 @@ export function AdsTab({ user }: { user: UserDoc }) {
         </Num>
         <p className="mb-3 text-xs text-muted-foreground">ads watched today</p>
         <Progress value={total} max={REWARDS.dailyAdsGoal} />
+        <p className="mt-2 text-[11px] text-muted-foreground">
+          Total ads watched: <Num>{user.totalAds ?? 0}</Num>
+        </p>
       </Card>
+
+      <MilestoneList
+        user={user}
+        icon="🎯"
+        title="Ad Tasks"
+        progress={user.totalAds ?? 0}
+        unit="ads"
+        items={AD_TASK_MILESTONES.map((m) => ({
+          key: m.key,
+          label: `Watch ${m.ads} ads`,
+          goal: m.ads,
+          usdt: m.usdt,
+        }))}
+      />
 
       {AD_PROVIDERS.map((p) => {
         const seen = user.adsToday?.[p.id] ?? 0;
