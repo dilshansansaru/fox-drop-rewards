@@ -4,6 +4,7 @@ import { NETWORK, REWARDS, TASKS, TOKEN_PRICE_USD } from "@/lib/config";
 import { requestWithdraw, useWithdrawals, type UserDoc } from "@/lib/store";
 import { openLink } from "@/lib/telegram";
 import { BRAND } from "@/lib/config";
+import { GuideBox } from "@/components/GuideBox";
 
 export function WithdrawTab({ user }: { user: UserDoc }) {
   const [amount, setAmount] = useState(String(REWARDS.minWithdraw));
@@ -60,6 +61,18 @@ export function WithdrawTab({ user }: { user: UserDoc }) {
 
   return (
     <div className="space-y-4">
+      <GuideBox
+        icon="💰"
+        title="Withdraw Guide"
+        steps={[
+          { do: "All main tasks complete කරන්න", reward: `FOX + ${REWARDS.mainTaskUsdt} USDT each` },
+          { do: `Friends ${REWARDS.dailyReferGoal} ක් invite කරන්න`, reward: `${REWARDS.referralUsdt} USDT + ${REWARDS.referralTokens} FOX each` },
+          { do: `Today ${REWARDS.dailyAdsGoal} ads බලන්න`, reward: "up to 100 FOX per ad" },
+          { do: `USDT balance ${REWARDS.minWithdraw} වෙනකම් එකතු කරන්න`, reward: "Withdraw unlocks" },
+          { do: "BEP-20 address දාලා withdraw request කරන්න", reward: `Paid in 24h (fee ${REWARDS.withdrawFee} USDT)` },
+        ]}
+        note={`FOX → USDT exchange (1 FOX = $${TOKEN_PRICE_USD}) opens in 2027 Q2 on ${NETWORK}.`}
+      />
       <Card className="bg-hero-glow text-center">
         <SectionTitle icon="💰">Withdraw</SectionTitle>
         <Num className="text-4xl text-success">{user.usdt.toFixed(4)}</Num>

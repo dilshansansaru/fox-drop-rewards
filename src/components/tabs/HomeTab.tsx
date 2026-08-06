@@ -4,6 +4,7 @@ import { Btn, Card, Num, Progress, SectionTitle, Sheet } from "@/components/ui-k
 import { ALLOCATION, NETWORK, REWARDS, ROADMAP, TASKS, TOKEN_PRICE_USD } from "@/lib/config";
 import { claimDayBonus, type UserDoc } from "@/lib/store";
 import { useToast } from "@/components/ui-kit";
+import { GuideBox } from "@/components/GuideBox";
 
 export function HomeTab({ user }: { user: UserDoc }) {
   const [guide, setGuide] = useState(false);
@@ -30,6 +31,19 @@ export function HomeTab({ user }: { user: UserDoc }) {
 
   return (
     <div className="space-y-5">
+      <GuideBox
+        icon="🦊"
+        title="FOXDROP System Guide"
+        steps={[
+          { do: "Security check එක pass කරන්න", reward: `${REWARDS.securityCheckTokens} FOX` },
+          { do: "Main / Partner / Community tasks කරන්න", reward: `up to 700 FOX + ${REWARDS.mainTaskUsdt} USDT per main task` },
+          { do: `Daily ${REWARDS.dailyAdsGoal} ads බලන්න`, reward: "10–100 FOX per ad" },
+          { do: "Friends invite කරන්න", reward: `${REWARDS.referralTokens} FOX + ${REWARDS.referralUsdt} USDT each` },
+          { do: `Friend day1 ${REWARDS.day1AdsGoal} ads / day2 ${REWARDS.day2AdsGoal} ads`, reward: `${REWARDS.day1Usdt} + ${REWARDS.day2Usdt} USDT` },
+          { do: `USDT withdraw (min ${REWARDS.minWithdraw})`, reward: `Paid within 24h · fee ${REWARDS.withdrawFee} USDT` },
+        ]}
+        note="FOX tokens exchange to USDT in 2027 Q2 · 1 FOX = $0.001 · BEP-20 (BSC)."
+      />
       <section className="bg-hero-glow animate-rise rounded-3xl p-5 text-center">
         <img
           src={logo}

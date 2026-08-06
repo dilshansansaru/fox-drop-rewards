@@ -2,6 +2,7 @@ import { Btn, Card, Num, SectionTitle, useToast } from "@/components/ui-kit";
 import { BRAND, REWARDS } from "@/lib/config";
 import { useReferrals, type ReferralStatus, type UserDoc } from "@/lib/store";
 import { openLink } from "@/lib/telegram";
+import { GuideBox } from "@/components/GuideBox";
 
 const STATUS: Record<ReferralStatus, { label: string; cls: string }> = {
   pending: { label: "⏳ Pending", cls: "text-muted-foreground" },
@@ -33,6 +34,16 @@ export function ReferralTab({ user }: { user: UserDoc }) {
 
   return (
     <div className="space-y-4">
+      <GuideBox
+        icon="👥"
+        title="Referral Guide"
+        steps={[
+          { do: "Your link එකෙන් friend කෙනෙක් join කරයි", reward: `${REWARDS.referralTokens} FOX + ${REWARDS.referralUsdt} USDT instantly` },
+          { do: `Friend එයාගේ day 1 එකේ ${REWARDS.day1AdsGoal} ads බලයි`, reward: `${REWARDS.day1Usdt} USDT to you` },
+          { do: `Friend එයාගේ day 2 එකේ ${REWARDS.day2AdsGoal} ads බලයි`, reward: `${REWARDS.day2Usdt} USDT to you` },
+        ]}
+        note="Progress updates in real time. Same-device / same-IP fake accounts are blocked automatically."
+      />
       <Card className="bg-hero-glow text-center">
         <SectionTitle icon="👥">Referral Program</SectionTitle>
         <Num className="text-4xl text-gold">{user.refCount ?? 0}</Num>
