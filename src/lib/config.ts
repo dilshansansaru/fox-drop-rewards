@@ -31,6 +31,21 @@ export const REFERRAL_MILESTONES = [
   { key: "day2", day: 2, ads: REWARDS.day2AdsGoal, usdt: REWARDS.day2Usdt },
 ] as const;
 
+/** Personal ad-watching milestones (cumulative ads → USDT, claim once). */
+export const AD_TASK_MILESTONES = [
+  { key: "ads10", ads: 10, usdt: 0.002 },
+  { key: "ads20", ads: 20, usdt: 0.005 },
+  { key: "ads50", ads: 50, usdt: 0.01 },
+] as const;
+
+/** Referral-count milestones (verified friends → USDT, claim once). */
+export const REFER_TASK_MILESTONES = [
+  { key: "ref5", count: 5, usdt: 0.005 },
+  { key: "ref10", count: 10, usdt: 0.01 },
+  { key: "ref25", count: 25, usdt: 0.03 },
+  { key: "ref75", count: 75, usdt: 0.1 },
+] as const;
+
 export type AdProviderId = "adsgram" | "monetag" | "gigapub" | "towerads";
 
 export type AdProvider = {
