@@ -1,8 +1,9 @@
 import { useState } from "react";
 import { Btn, Card, Num, SectionTitle, useToast } from "@/components/ui-kit";
-import { TASKS, type Task, type TaskCategory } from "@/lib/config";
+import { REWARDS, TASKS, type Task, type TaskCategory } from "@/lib/config";
 import { completeTask, verifyTelegramMembership, type UserDoc } from "@/lib/store";
 import { openLink } from "@/lib/telegram";
+import { GuideBox } from "@/components/GuideBox";
 
 const CATEGORIES: { id: TaskCategory; label: string; icon: string }[] = [
   { id: "main", label: "Main", icon: "⭐" },
@@ -75,6 +76,17 @@ export function TasksTab({ user }: { user: UserDoc }) {
 
   return (
     <div className="space-y-4">
+      <GuideBox
+        icon="📋"
+        title="Tasks Guide"
+        steps={[
+          { do: "⭐ Main tasks: join community & payment channel, add mini app", reward: `250–500 FOX + ${REWARDS.mainTaskUsdt} USDT` },
+          { do: "🤝 Partner tasks: join partner channel / open partner mini app", reward: "150–200 FOX" },
+          { do: "🌐 Community tasks: invite friends & watch daily ads", reward: "400–700 FOX" },
+          { do: "Task කරලා Verify බටන් එක ඔබන්න", reward: "Instant reward credit" },
+        ]}
+        note="Telegram tasks are verified by real channel membership — leaving the channel can void the reward."
+      />
       <Card className="text-center">
         <SectionTitle icon="📋">Task Center</SectionTitle>
         <Num className="text-3xl text-gold">

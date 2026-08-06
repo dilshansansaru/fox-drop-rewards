@@ -3,6 +3,7 @@ import { Btn, Card, Num, Progress, SectionTitle, useToast } from "@/components/u
 import { AD_PROVIDERS, REWARDS, type AdProviderId } from "@/lib/config";
 import { showAd } from "@/lib/ads";
 import { awardAd, type UserDoc } from "@/lib/store";
+import { GuideBox } from "@/components/GuideBox";
 
 export function AdsTab({ user }: { user: UserDoc }) {
   const [busy, setBusy] = useState<AdProviderId | null>(null);
@@ -34,6 +35,19 @@ export function AdsTab({ user }: { user: UserDoc }) {
 
   return (
     <div className="space-y-4">
+      <GuideBox
+        icon="📺"
+        title="Ads Guide"
+        steps={[
+          { do: "Adsgram AI ad එකක් බලන්න (daily 20)", reward: "100 FOX per ad" },
+          { do: "Monetag ad එකක් බලන්න (daily 15)", reward: "50 FOX per ad" },
+          { do: "GigaPub ad එකක් බලන්න (daily 10)", reward: "50 FOX per ad" },
+          { do: "Tower Ads ad එකක් බලන්න (daily 50)", reward: "10 FOX per ad" },
+          { do: `Day 1: watch ${REWARDS.day1AdsGoal} ads`, reward: `${REWARDS.day1Usdt} USDT` },
+          { do: `Day 2: watch ${REWARDS.day2AdsGoal} ads`, reward: `${REWARDS.day2Usdt} USDT` },
+        ]}
+        note={`Daily goal ${REWARDS.dailyAdsGoal} ads. Each ad must be watched fully — rewards credit instantly.`}
+      />
       <Card className="text-center">
         <SectionTitle icon="📺">Watch Ads</SectionTitle>
         <Num className="text-3xl text-gold">
