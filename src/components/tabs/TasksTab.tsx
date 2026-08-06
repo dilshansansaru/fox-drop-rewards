@@ -83,7 +83,9 @@ export function TasksTab({ user }: { user: UserDoc }) {
           { do: "⭐ Main tasks: join community & payment channel, add mini app", reward: `250–500 FOX + ${REWARDS.mainTaskUsdt} USDT` },
           { do: "🤝 Partner tasks: join partner channel / open partner mini app", reward: "150–200 FOX" },
           { do: "🌐 Community tasks: invite friends & watch daily ads", reward: "400–700 FOX" },
-          { do: "Task කරලා Verify බටන් එක ඔබන්න", reward: "Instant reward credit" },
+          { do: "Finish the task, then tap the Verify button", reward: "Instant reward credit" },
+          { do: "Ad tasks: 10 / 20 / 50 ads watched (Ads tab)", reward: "0.002 / 0.005 / 0.01 USDT" },
+          { do: "Referral tasks: 5 / 10 / 25 / 75 friends (Frens tab)", reward: "0.005 / 0.01 / 0.03 / 0.1 USDT" },
         ]}
         note="Telegram tasks are verified by real channel membership — leaving the channel can void the reward."
       />
