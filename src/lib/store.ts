@@ -33,6 +33,10 @@ export type Referral = {
   reason?: string;
   tokens: number;
   usdt: number;
+  /** live ad progress of the referred Telegram user */
+  ads?: number;
+  dayIndex?: number;
+  milestones?: Record<string, boolean>;
   createdAt?: unknown;
 };
 
