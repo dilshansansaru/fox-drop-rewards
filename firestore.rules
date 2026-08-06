@@ -1,0 +1,19 @@
+rules_version = '2';
+// Firestore rules for FOXDROP. Paste into Firebase Console → Firestore → Rules.
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /users/{userId} {
+      allow read: if true;
+      allow create, update: if true;
+      allow delete: if false;
+    }
+    match /referrals/{docId} {
+      allow read, create: if true;
+      allow update, delete: if false;
+    }
+    match /withdrawals/{docId} {
+      allow read, create, update: if true;
+      allow delete: if false;
+    }
+  }
+}
