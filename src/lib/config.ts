@@ -10,19 +10,26 @@ export const BRAND = {
 export const TOKEN_PRICE_USD = 0.001;
 
 export const REWARDS = {
+  /** instant on join via referral link */
   referralTokens: 350,
-  referralUsdt: 0.015,
+  referralUsdt: 0.0025,
   mainTaskUsdt: 0.0025,
   day1AdsGoal: 10,
   day1Usdt: 0.005,
   day2AdsGoal: 15,
-  day2Usdt: 0.0075,
+  day2Usdt: 0.005,
   securityCheckTokens: 25,
   minWithdraw: 0.1,
   withdrawFee: 0.01,
   dailyAdsGoal: 20,
   dailyReferGoal: 2,
 };
+
+/** Extra USDT the inviter earns when a referred friend watches ads. */
+export const REFERRAL_MILESTONES = [
+  { key: "day1", day: 1, ads: REWARDS.day1AdsGoal, usdt: REWARDS.day1Usdt },
+  { key: "day2", day: 2, ads: REWARDS.day2AdsGoal, usdt: REWARDS.day2Usdt },
+] as const;
 
 export type AdProviderId = "adsgram" | "monetag" | "gigapub" | "towerads";
 
