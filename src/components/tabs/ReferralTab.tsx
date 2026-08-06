@@ -88,11 +88,11 @@ export function ReferralTab({ user }: { user: UserDoc }) {
                       📺 {r.ads ?? 0} ads · day {r.dayIndex ?? 1}
                     </p>
                     <p className="text-[10px]">
-                      <span className={r.milestones?.day1 ? "text-success" : "text-muted-foreground"}>
+                      <span className={r.milestones?.["day1"] ? "text-success" : "text-muted-foreground"}>
                         D1 {REWARDS.day1AdsGoal} ads
                       </span>
                       {" · "}
-                      <span className={r.milestones?.day2 ? "text-success" : "text-muted-foreground"}>
+                      <span className={r.milestones?.["day2"] ? "text-success" : "text-muted-foreground"}>
                         D2 {REWARDS.day2AdsGoal} ads
                       </span>
                     </p>
