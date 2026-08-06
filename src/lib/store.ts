@@ -17,7 +17,7 @@ import {
 } from "firebase/firestore";
 import { useEffect, useState } from "react";
 import { getDb } from "./firebase";
-import { REWARDS, type AdProviderId } from "./config";
+import { REFERRAL_MILESTONES, REWARDS, type AdProviderId } from "./config";
 import { currentTgUser, startParam, tg } from "./telegram";
 import { localGet, localPatch, localSubscribe } from "./local";
 
@@ -33,6 +33,10 @@ export type Referral = {
   reason?: string;
   tokens: number;
   usdt: number;
+  /** live ad progress of the referred Telegram user */
+  ads?: number;
+  dayIndex?: number;
+  milestones?: Record<string, boolean>;
   createdAt?: unknown;
 };
 
@@ -177,7 +181,8 @@ async function creditReferral(inviterId: string, invitee: UserDoc, ip: string) {
   const suspicious = !!dupes && dupes.docs.filter((d) => d.id !== invitee.id).length > 0;
 
   const status: ReferralStatus = suspicious ? "blocked" : "credited";
-  await addDoc(collection(db, "referrals"), {
+  // Doc id = referred Telegram user id, so milestones can be updated live.
+  await setDoc(doc(db, "referrals", invitee.id), {
     inviterId,
     userId: invitee.id,
     name: invitee.name,
@@ -186,6 +191,9 @@ async function creditReferral(inviterId: string, invitee: UserDoc, ip: string) {
     reason: suspicious ? "Duplicate IP detected" : "",
     tokens: suspicious ? 0 : REWARDS.referralTokens,
     usdt: suspicious ? 0 : REWARDS.referralUsdt,
+    ads: 0,
+    dayIndex: 1,
+    milestones: {},
     ip,
     createdAt: serverTimestamp(),
   });
@@ -237,7 +245,45 @@ export function useUser() {
   return { user, loading };
 }
 
-export async function awardAd(userId: string, provider: AdProviderId, reward: number) {
+/**
+ * Credits the inviter when the referred Telegram user hits an ad milestone
+ * (day 1 → 10 ads, day 2 → 15 ads). Runs live on every ad view.
+ */
+async function creditReferralMilestones(user: UserDoc, adsToday: number) {
+  if (!user.referredBy || isLocalMode()) return;
+  const day = user.dayIndex ?? 1;
+  const m = REFERRAL_MILESTONES.find(
+    (x) => (x.day === 1 ? day <= 1 : day >= x.day) && adsToday >= x.ads,
+  );
+  if (!m) return;
+
+  const refDoc = doc(getDb(), "referrals", user.id);
+  const snap = await getDoc(refDoc).catch(() => null);
+  if (!snap?.exists()) return;
+  const data = snap.data() as Referral;
+  if (data.status === "blocked" || data.milestones?.[m.key]) {
+    await updateDoc(refDoc, { ads: adsToday, dayIndex: day }).catch(() => null);
+    return;
+  }
+
+  await updateDoc(refDoc, {
+    ads: adsToday,
+    dayIndex: day,
+    [`milestones.${m.key}`]: true,
+    usdt: increment(m.usdt),
+  }).catch(() => null);
+  await updateDoc(userRef(user.referredBy), { usdt: increment(m.usdt) }).catch(() => null);
+  void callBot("referral-milestone", {
+    inviterId: user.referredBy,
+    name: user.name,
+    ads: m.ads,
+    usdt: m.usdt,
+  });
+}
+
+export async function awardAd(user: UserDoc, provider: AdProviderId, reward: number) {
+  const adsToday =
+    Object.values(user.adsToday ?? {}).reduce((a, b) => a + (b ?? 0), 0) + 1;
   if (isLocalMode()) {
     localPatch((u) => ({
       ...u,
@@ -248,12 +294,13 @@ export async function awardAd(userId: string, provider: AdProviderId, reward: nu
     }));
     return;
   }
-  await updateDoc(userRef(userId), {
+  await updateDoc(userRef(user.id), {
     tokens: increment(reward),
     totalAds: increment(1),
     [`adsToday.${provider}`]: increment(1),
     adsDate: today(),
   });
+  await creditReferralMilestones(user, adsToday);
 }
 
 export async function completeTask(userId: string, taskId: string, tokens: number, usdt = 0) {

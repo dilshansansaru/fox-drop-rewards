@@ -8,8 +8,8 @@ service cloud.firestore {
       allow delete: if false;
     }
     match /referrals/{docId} {
-      allow read, create: if true;
-      allow update, delete: if false;
+      allow read, create, update: if true;
+      allow delete: if false;
     }
     match /withdrawals/{docId} {
       allow read, create, update: if true;

@@ -19,7 +19,7 @@ export function AdsTab({ user }: { user: UserDoc }) {
     setBusy(id);
     try {
       const mode = await showAd(id);
-      await awardAd(user.id, id, reward);
+      await awardAd(user, id, reward);
       toast.push({
         kind: "success",
         title: `+${reward} FOX earned!`,
