@@ -216,11 +216,10 @@ export function useUser() {
         const u = await ensureUser();
         setUser(u);
         if (isLocalMode()) {
-          unsub = () => {
-            localSubscribe(setUser)();
-          };
           const off = localSubscribe(setUser);
-          unsub = off as unknown as () => void;
+          unsub = () => {
+            off();
+          };
         } else {
           unsub = onSnapshot(userRef(u.id), (snap) => {
             if (snap.exists()) setUser({ ...(snap.data() as UserDoc), id: u.id });
