@@ -84,12 +84,25 @@ export function ReferralTab({ user }: { user: UserDoc }) {
                   <div>
                     <p className="text-sm">{r.name || `User ${r.userId.slice(-4)}`}</p>
                     <p className={`text-[11px] ${s.cls}`}>{s.label}</p>
+                    <p className="text-num text-[10px] text-muted-foreground">
+                      📺 {r.ads ?? 0} ads · day {r.dayIndex ?? 1}
+                    </p>
+                    <p className="text-[10px]">
+                      <span className={r.milestones?.day1 ? "text-success" : "text-muted-foreground"}>
+                        D1 {REWARDS.day1AdsGoal} ads
+                      </span>
+                      {" · "}
+                      <span className={r.milestones?.day2 ? "text-success" : "text-muted-foreground"}>
+                        D2 {REWARDS.day2AdsGoal} ads
+                      </span>
+                    </p>
                     {r.reason && <p className="text-[10px] text-destructive">{r.reason}</p>}
                   </div>
                   <div className="text-right">
                     <Num className="text-xs text-gold">+{r.tokens} FOX</Num>
-                    <Num className="block text-[11px] text-success">+{r.usdt} USDT</Num>
+                    <Num className="block text-[11px] text-success">+{r.usdt.toFixed(4)} USDT</Num>
                   </div>
+
                 </div>
               );
             })}
