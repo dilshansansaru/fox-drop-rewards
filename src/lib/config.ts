@@ -6,6 +6,10 @@ export const BRAND = {
   payment: "https://t.me/FoxDroppayment",
 };
 
+/** Telegram user ids that can see the Admin tab (public info, not a secret). */
+export const ADMIN_TG_IDS = ["5419054691"];
+
+
 /** 1 FOX = $0.001 */
 export const TOKEN_PRICE_USD = 0.001;
 

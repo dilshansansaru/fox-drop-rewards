@@ -43,11 +43,15 @@ const TABS: { id: TabId; label: string; icon: string }[] = [
 ];
 
 function adminIds() {
-  return String(import.meta.env["VITE_ADMIN_CHAT_IDS"] ?? "")
-    .split(",")
-    .map((s) => s.trim())
-    .filter(Boolean);
+  return [
+    ...ADMIN_TG_IDS,
+    ...String(import.meta.env["VITE_ADMIN_CHAT_IDS"] ?? "")
+      .split(",")
+      .map((s) => s.trim())
+      .filter(Boolean),
+  ];
 }
+
 
 function App() {
   return (
