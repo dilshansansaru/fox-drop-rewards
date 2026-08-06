@@ -8,7 +8,9 @@ import { ReferralTab } from "@/components/tabs/ReferralTab";
 import { TasksTab } from "@/components/tabs/TasksTab";
 import { WithdrawTab } from "@/components/tabs/WithdrawTab";
 import { Num, ToastHost } from "@/components/ui-kit";
+import { ADMIN_TG_IDS } from "@/lib/config";
 import { initAnalytics } from "@/lib/firebase";
+
 import { claimSecurityBonus, useUser } from "@/lib/store";
 import { currentTgUser, initTelegram } from "@/lib/telegram";
 
