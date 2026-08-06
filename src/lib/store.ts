@@ -17,7 +17,7 @@ import {
 } from "firebase/firestore";
 import { useEffect, useState } from "react";
 import { getDb } from "./firebase";
-import { REWARDS, type AdProviderId } from "./config";
+import { REFERRAL_MILESTONES, REWARDS, type AdProviderId } from "./config";
 import { currentTgUser, startParam, tg } from "./telegram";
 import { localGet, localPatch, localSubscribe } from "./local";
 
