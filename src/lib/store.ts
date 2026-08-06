@@ -181,7 +181,8 @@ async function creditReferral(inviterId: string, invitee: UserDoc, ip: string) {
   const suspicious = !!dupes && dupes.docs.filter((d) => d.id !== invitee.id).length > 0;
 
   const status: ReferralStatus = suspicious ? "blocked" : "credited";
-  await addDoc(collection(db, "referrals"), {
+  // Doc id = referred Telegram user id, so milestones can be updated live.
+  await setDoc(doc(db, "referrals", invitee.id), {
     inviterId,
     userId: invitee.id,
     name: invitee.name,
@@ -190,6 +191,9 @@ async function creditReferral(inviterId: string, invitee: UserDoc, ip: string) {
     reason: suspicious ? "Duplicate IP detected" : "",
     tokens: suspicious ? 0 : REWARDS.referralTokens,
     usdt: suspicious ? 0 : REWARDS.referralUsdt,
+    ads: 0,
+    dayIndex: 1,
+    milestones: {},
     ip,
     createdAt: serverTimestamp(),
   });
