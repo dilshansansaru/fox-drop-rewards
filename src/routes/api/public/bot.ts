@@ -18,6 +18,7 @@ const schema = z.object({
     "new-user",
     "verify-task",
     "referral-joined",
+    "referral-milestone",
     "withdraw-request",
     "withdraw-approved",
   ]),
@@ -73,6 +74,17 @@ export const Route = createFileRoute("/api/public/bot")({
                 await sendMessage(
                   inviter,
                   `👥 <b>New referral joined!</b>\n\n+${fmt.fox(Number(p["tokens"] ?? 350))}\n+${fmt.usdt(Number(p["usdt"] ?? 0.015))}\n\nStatus: <b>✅ Verified & Credited</b>`,
+                  mainButtons(),
+                );
+              }
+              return Response.json({ ok: true });
+            }
+            case "referral-milestone": {
+              const inviter = String(p["inviterId"] ?? "");
+              if (inviter) {
+                await sendMessage(
+                  inviter,
+                  `🎯 <b>Referral milestone reached!</b>\n\n👤 ${p["name"] ?? "Your friend"} watched ${Number(p["ads"] ?? 0)} ads\n+${fmt.usdt(Number(p["usdt"] ?? 0))} credited to you`,
                   mainButtons(),
                 );
               }
