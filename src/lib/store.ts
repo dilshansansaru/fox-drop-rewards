@@ -76,6 +76,14 @@ export type Withdrawal = {
 
 export const today = () => new Date().toISOString().slice(0, 10);
 
+function timestampMillis(value: unknown) {
+  if (value && typeof value === "object" && "toMillis" in value) {
+    const toMillis = (value as { toMillis?: () => number }).toMillis;
+    return typeof toMillis === "function" ? toMillis.call(value) : 0;
+  }
+  return 0;
+}
+
 const userRef = (id: string) => doc(getDb(), "users", id);
 
 async function fetchIp(): Promise<string> {
@@ -275,6 +283,7 @@ export function useUser() {
  */
 async function creditReferralMilestones(user: UserDoc, adsToday: number) {
   if (!user.referredBy || isLocalMode()) return;
+  const inviterId = user.referredBy;
   const day = user.dayIndex ?? 1;
   const m = REFERRAL_MILESTONES.find(
     (x) => (x.day === 1 ? day <= 1 : day >= x.day) && adsToday >= x.ads,
@@ -296,7 +305,7 @@ async function creditReferralMilestones(user: UserDoc, adsToday: number) {
       [`milestones.${m.key}`]: true,
       usdt: increment(m.usdt),
     });
-    transaction.update(userRef(user.referredBy), { usdt: increment(m.usdt) });
+    transaction.update(userRef(inviterId), { usdt: increment(m.usdt) });
     return true;
   }).catch((error) => {
     console.error("Referral milestone credit failed", error);
@@ -304,7 +313,7 @@ async function creditReferralMilestones(user: UserDoc, adsToday: number) {
   });
   if (!credited) return;
   void callBot("referral-milestone", {
-    inviterId: user.referredBy,
+    inviterId,
     name: user.name,
     ads: m.ads,
     usdt: m.usdt,
