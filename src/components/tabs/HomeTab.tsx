@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import logo from "@/assets/foxdrop-logo.png";
 import { Btn, Card, Num, Progress, SectionTitle, Sheet } from "@/components/ui-kit";
 import { ALLOCATION, NETWORK, REWARDS, ROADMAP, TASKS, TOKEN_PRICE_USD } from "@/lib/config";
@@ -18,12 +18,11 @@ export function HomeTab({ user }: { user: UserDoc }) {
     { key: "day2", label: "Day 2 · Watch 15 ads", goal: REWARDS.day2AdsGoal, usdt: REWARDS.day2Usdt },
   ];
 
-  useState(() => {
-    if (typeof window === "undefined") return false;
-    if (window.localStorage.getItem("foxdrop-guide-seen") === "1") return false;
-    window.setTimeout(() => setGuide(true), 250);
-    return true;
-  });
+  useEffect(() => {
+    if (window.localStorage.getItem("foxdrop-guide-seen") === "1") return;
+    const timer = window.setTimeout(() => setGuide(true), 250);
+    return () => window.clearTimeout(timer);
+  }, []);
 
   const closeGuide = () => {
     window.localStorage.setItem("foxdrop-guide-seen", "1");
