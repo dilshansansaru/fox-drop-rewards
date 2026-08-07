@@ -193,14 +193,14 @@ async function creditReferral(inviterId: string, invitee: UserDoc, ip: string) {
 
   const status: ReferralStatus = suspicious ? "blocked" : "credited";
   // Doc id = referred Telegram user id, so milestones can be updated live.
-  await runTransaction(db, async (transaction) => {
+  const created = await runTransaction(db, async (transaction) => {
     const referralRef = doc(db, "referrals", invitee.id);
     const inviterRef = userRef(inviterId);
     const [existingReferral, inviterSnap] = await Promise.all([
       transaction.get(referralRef),
       transaction.get(inviterRef),
     ]);
-    if (existingReferral.exists()) return;
+    if (existingReferral.exists()) return false;
     if (!inviterSnap.exists()) throw new Error("Inviter account was not found");
 
     transaction.set(referralRef, {
@@ -225,9 +225,10 @@ async function creditReferral(inviterId: string, invitee: UserDoc, ip: string) {
         refCount: increment(1),
       });
     }
+    return true;
   });
 
-  if (suspicious) return;
+  if (suspicious || !created) return;
 
   void callBot("referral-joined", {
     inviterId,
@@ -281,21 +282,27 @@ async function creditReferralMilestones(user: UserDoc, adsToday: number) {
   if (!m) return;
 
   const refDoc = doc(getDb(), "referrals", user.id);
-  const snap = await getDoc(refDoc).catch(() => null);
-  if (!snap?.exists()) return;
-  const data = snap.data() as Referral;
-  if (data.status === "blocked" || data.milestones?.[m.key]) {
-    await updateDoc(refDoc, { ads: adsToday, dayIndex: day }).catch(() => null);
-    return;
-  }
-
-  await updateDoc(refDoc, {
-    ads: adsToday,
-    dayIndex: day,
-    [`milestones.${m.key}`]: true,
-    usdt: increment(m.usdt),
-  }).catch(() => null);
-  await updateDoc(userRef(user.referredBy), { usdt: increment(m.usdt) }).catch(() => null);
+  const credited = await runTransaction(getDb(), async (transaction) => {
+    const snap = await transaction.get(refDoc);
+    if (!snap.exists()) return false;
+    const data = snap.data() as Referral;
+    if (data.status === "blocked" || data.milestones?.[m.key]) {
+      transaction.update(refDoc, { ads: adsToday, dayIndex: day });
+      return false;
+    }
+    transaction.update(refDoc, {
+      ads: adsToday,
+      dayIndex: day,
+      [`milestones.${m.key}`]: true,
+      usdt: increment(m.usdt),
+    });
+    transaction.update(userRef(user.referredBy), { usdt: increment(m.usdt) });
+    return true;
+  }).catch((error) => {
+    console.error("Referral milestone credit failed", error);
+    return false;
+  });
+  if (!credited) return;
   void callBot("referral-milestone", {
     inviterId: user.referredBy,
     name: user.name,
@@ -414,13 +421,16 @@ export function useReferrals(inviterId: string | undefined) {
     const q = query(
       collection(getDb(), "referrals"),
       where("inviterId", "==", inviterId),
-      orderBy("createdAt", "desc"),
       limit(50),
     );
     return onSnapshot(
       q,
-      (s) => setItems(s.docs.map((d) => ({ id: d.id, ...(d.data() as DocumentData) }) as Referral)),
-      () => setItems([]),
+      (s) => setItems(
+        s.docs
+          .map((d) => ({ id: d.id, ...(d.data() as DocumentData) }) as Referral)
+          .sort((a, b) => timestampMillis(b.createdAt) - timestampMillis(a.createdAt)),
+      ),
+      (error) => console.error("Referral subscription failed", error),
     );
   }, [inviterId]);
   return items;
@@ -431,12 +441,16 @@ export function useWithdrawals(userId?: string) {
   useEffect(() => {
     const base = collection(getDb(), "withdrawals");
     const q = userId
-      ? query(base, where("userId", "==", userId), orderBy("createdAt", "desc"), limit(50))
+      ? query(base, where("userId", "==", userId), limit(50))
       : query(base, orderBy("createdAt", "desc"), limit(100));
     return onSnapshot(
       q,
-      (s) => setItems(s.docs.map((d) => ({ id: d.id, ...(d.data() as DocumentData) }) as Withdrawal)),
-      () => setItems([]),
+      (s) => setItems(
+        s.docs
+          .map((d) => ({ id: d.id, ...(d.data() as DocumentData) }) as Withdrawal)
+          .sort((a, b) => timestampMillis(b.createdAt) - timestampMillis(a.createdAt)),
+      ),
+      (error) => console.error("Withdrawal subscription failed", error),
     );
   }, [userId]);
   return items;
