@@ -10,6 +10,7 @@ import {
   query,
   serverTimestamp,
   setDoc,
+  runTransaction,
   updateDoc,
   where,
   addDoc,
@@ -89,13 +90,17 @@ async function fetchIp(): Promise<string> {
 
 async function callBot(action: string, payload: Record<string, unknown>) {
   try {
-    await fetch("/api/public/bot", {
+    const response = await fetch("/api/public/bot", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ initData: tg()?.initData ?? "", action, payload }),
     });
-  } catch {
-    /* notifications are best-effort */
+    if (!response.ok) {
+      const body = await response.text();
+      console.error(`Bot notification failed [${response.status}]: ${body}`);
+    }
+  } catch (error) {
+    console.error("Bot notification request failed", error);
   }
 }
 
@@ -162,7 +167,13 @@ export async function ensureUser(): Promise<UserDoc> {
     fresh.ip = ip;
     await setDoc(ref, { ...fresh, createdAt: serverTimestamp() });
     void callBot("new-user", { userId: id, name, username: tgu.username, ref: inviter });
-    if (fresh.referredBy) await creditReferral(fresh.referredBy, fresh, ip);
+    if (fresh.referredBy) {
+      try {
+        await creditReferral(fresh.referredBy, fresh, ip);
+      } catch (error) {
+        console.error("Referral credit failed", error);
+      }
+    }
     return fresh;
   } catch (e) {
     console.warn("Firestore unavailable — using offline mode", e);
@@ -178,33 +189,45 @@ async function creditReferral(inviterId: string, invitee: UserDoc, ip: string) {
   const dupes = await getDocs(
     query(collection(db, "users"), where("ip", "==", ip), limit(5)),
   ).catch(() => null);
-  const suspicious = !!dupes && dupes.docs.filter((d) => d.id !== invitee.id).length > 0;
+  const suspicious = ip !== "unknown" && !!dupes && dupes.docs.some((d) => d.id !== invitee.id);
 
   const status: ReferralStatus = suspicious ? "blocked" : "credited";
   // Doc id = referred Telegram user id, so milestones can be updated live.
-  await setDoc(doc(db, "referrals", invitee.id), {
-    inviterId,
-    userId: invitee.id,
-    name: invitee.name,
-    username: invitee.username,
-    status,
-    reason: suspicious ? "Duplicate IP detected" : "",
-    tokens: suspicious ? 0 : REWARDS.referralTokens,
-    usdt: suspicious ? 0 : REWARDS.referralUsdt,
-    ads: 0,
-    dayIndex: 1,
-    milestones: {},
-    ip,
-    createdAt: serverTimestamp(),
+  await runTransaction(db, async (transaction) => {
+    const referralRef = doc(db, "referrals", invitee.id);
+    const inviterRef = userRef(inviterId);
+    const [existingReferral, inviterSnap] = await Promise.all([
+      transaction.get(referralRef),
+      transaction.get(inviterRef),
+    ]);
+    if (existingReferral.exists()) return;
+    if (!inviterSnap.exists()) throw new Error("Inviter account was not found");
+
+    transaction.set(referralRef, {
+      inviterId,
+      userId: invitee.id,
+      name: invitee.name,
+      username: invitee.username,
+      status,
+      reason: suspicious ? "Duplicate IP detected" : "",
+      tokens: suspicious ? 0 : REWARDS.referralTokens,
+      usdt: suspicious ? 0 : REWARDS.referralUsdt,
+      ads: 0,
+      dayIndex: 1,
+      milestones: {},
+      ip,
+      createdAt: serverTimestamp(),
+    });
+    if (!suspicious) {
+      transaction.update(inviterRef, {
+        tokens: increment(REWARDS.referralTokens),
+        usdt: increment(REWARDS.referralUsdt),
+        refCount: increment(1),
+      });
+    }
   });
 
   if (suspicious) return;
-
-  await updateDoc(userRef(inviterId), {
-    tokens: increment(REWARDS.referralTokens),
-    usdt: increment(REWARDS.referralUsdt),
-    refCount: increment(1),
-  }).catch(() => null);
 
   void callBot("referral-joined", {
     inviterId,
@@ -432,6 +455,12 @@ export async function approveWithdrawal(w: Withdrawal, txid: string) {
 export async function rejectWithdrawal(w: Withdrawal) {
   await updateDoc(doc(getDb(), "withdrawals", w.id), { status: "rejected" });
   await updateDoc(userRef(w.userId), { usdt: increment(w.amount + w.fee) }).catch(() => null);
+  void callBot("withdraw-rejected", {
+    targetId: w.userId,
+    username: w.username,
+    amount: w.amount,
+    id: w.id,
+  });
 }
 
 export function useAllUsers(enabled: boolean) {
@@ -443,6 +472,33 @@ export function useAllUsers(enabled: boolean) {
       q,
       (s) => setItems(s.docs.map((d) => ({ ...(d.data() as UserDoc), id: d.id }))),
       () => setItems([]),
+    );
+  }, [enabled]);
+  return items;
+}
+
+export function useLeaderboard(max = 20) {
+  const [items, setItems] = useState<UserDoc[]>([]);
+  useEffect(() => {
+    const q = query(collection(getDb(), "users"), orderBy("refCount", "desc"), limit(max));
+    return onSnapshot(
+      q,
+      (s) => setItems(s.docs.map((d) => ({ ...(d.data() as UserDoc), id: d.id }))),
+      (error) => console.error("Leaderboard subscription failed", error),
+    );
+  }, [max]);
+  return items;
+}
+
+export function useAllReferrals(enabled: boolean) {
+  const [items, setItems] = useState<Referral[]>([]);
+  useEffect(() => {
+    if (!enabled) return;
+    const q = query(collection(getDb(), "referrals"), orderBy("createdAt", "desc"), limit(100));
+    return onSnapshot(
+      q,
+      (s) => setItems(s.docs.map((d) => ({ id: d.id, ...(d.data() as DocumentData) }) as Referral)),
+      (error) => console.error("Referral audit subscription failed", error),
     );
   }, [enabled]);
   return items;

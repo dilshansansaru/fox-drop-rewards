@@ -1,6 +1,6 @@
 import { Btn, Card, Num, SectionTitle, useToast } from "@/components/ui-kit";
 import { BRAND, REFER_TASK_MILESTONES, REWARDS } from "@/lib/config";
-import { useReferrals, type ReferralStatus, type UserDoc } from "@/lib/store";
+import { useLeaderboard, useReferrals, type ReferralStatus, type UserDoc } from "@/lib/store";
 import { openLink } from "@/lib/telegram";
 import { GuideBox } from "@/components/GuideBox";
 import { MilestoneList } from "@/components/MilestoneList";
@@ -15,6 +15,7 @@ const STATUS: Record<ReferralStatus, { label: string; cls: string }> = {
 export function ReferralTab({ user }: { user: UserDoc }) {
   const toast = useToast();
   const refs = useReferrals(user.id);
+  const leaders = useLeaderboard(10);
   const link = `${BRAND.miniAppUrl}?startapp=${user.id}`;
 
   const copy = async () => {
@@ -96,6 +97,23 @@ export function ReferralTab({ user }: { user: UserDoc }) {
         <p className="mt-3 text-[11px] text-muted-foreground">
           ⚠️ Fake or same-IP referrals are blocked automatically and receive no reward.
         </p>
+      </Card>
+
+      <Card>
+        <SectionTitle icon="🏅">Referral Leaderboard</SectionTitle>
+        <div className="space-y-2">
+          {leaders.map((leader, index) => (
+            <div key={leader.id} className="flex items-center gap-3 rounded-xl bg-surface-2 px-3 py-2.5">
+              <Num className={index < 3 ? "text-gold" : "text-muted-foreground"}>#{index + 1}</Num>
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-sm">{leader.name || `User ${leader.id.slice(-4)}`}</p>
+                <p className="truncate text-[10px] text-muted-foreground">@{leader.username || "private"}</p>
+              </div>
+              <Num className="text-sm text-primary">{leader.refCount ?? 0} refs</Num>
+            </div>
+          ))}
+          {leaders.length === 0 && <p className="text-xs text-muted-foreground">Leaderboard is updating…</p>}
+        </div>
       </Card>
 
       <Card>
