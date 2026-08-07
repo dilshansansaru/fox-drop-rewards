@@ -21,6 +21,7 @@ const schema = z.object({
     "referral-milestone",
     "withdraw-request",
     "withdraw-approved",
+    "withdraw-rejected",
   ]),
   payload: z.record(z.string(), z.unknown()).default({}),
 });
@@ -73,7 +74,7 @@ export const Route = createFileRoute("/api/public/bot")({
               if (inviter) {
                 await sendMessage(
                   inviter,
-                  `👥 <b>New referral joined!</b>\n\n+${fmt.fox(Number(p["tokens"] ?? 350))}\n+${fmt.usdt(Number(p["usdt"] ?? 0.015))}\n\nStatus: <b>✅ Verified & Credited</b>`,
+                  `🎉 <b>NEW REFERRAL REWARD</b>\n\nA verified friend joined FOXDROP with your link.\n\n🦊 +${fmt.fox(Number(p["tokens"] ?? 350))}\n💵 +${fmt.usdt(Number(p["usdt"] ?? 0.0025))}\n\n✅ The rewards were credited instantly.\n📺 Earn another ${fmt.usdt(0.005)} when this friend watches 10 ads on day 1, and ${fmt.usdt(0.005)} after 15 ads on day 2.`,
                   mainButtons(),
                 );
               }
@@ -108,8 +109,19 @@ export const Route = createFileRoute("/api/public/bot")({
               const target = String(p["targetId"] ?? "");
               const text = `✅ <b>WITHDRAW APPROVED</b>\n\n👤 @${p["username"] ?? "user"}\n💵 ${fmt.usdt(Number(p["amount"] ?? 0))}\n🏦 ${"BEP-20"}\n🧾 TX: <code>${txid ?? "-"}</code>`;
               if (target) await sendMessage(target, text, txButtons(txid));
+              await notifyAdmins(`🛠️ <b>ADMIN PAYMENT CONFIRMATION</b>\n\n${text}`, txButtons(txid));
               const channel = paymentChannelId();
               if (channel) await sendMessage(channel, `💸 <b>PAYMENT SENT</b>\n\n${text}`, txButtons(txid));
+              return Response.json({ ok: true });
+            }
+            case "withdraw-rejected": {
+              if (!adminIds().includes(String(uid)) && !devMode) {
+                return Response.json({ error: "Forbidden" }, { status: 403 });
+              }
+              const target = String(p["targetId"] ?? "");
+              const text = `❌ <b>WITHDRAWAL REJECTED</b>\n\n🧾 Request: <code>${p["id"] ?? "-"}</code>\n💵 ${fmt.usdt(Number(p["amount"] ?? 0))}\n\nThe withdrawal amount and fee have been refunded to your FOXDROP balance. Please check your wallet details before trying again.`;
+              if (target) await sendMessage(target, text, mainButtons());
+              await notifyAdmins(`🛠️ <b>WITHDRAWAL REJECTED & REFUNDED</b>\n\n👤 @${p["username"] ?? "user"}\n${text}`);
               return Response.json({ ok: true });
             }
           }

@@ -29,6 +29,8 @@ export const Route = createFileRoute("/")({
         content:
           "350 FOX + 0.015 USDT per referral, daily ad rewards and USDT withdrawals from 0.1 USDT on BEP-20.",
       },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary_large_image" },
     ],
   }),
   component: App,

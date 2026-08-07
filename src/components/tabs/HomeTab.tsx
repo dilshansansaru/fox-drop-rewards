@@ -1,10 +1,9 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import logo from "@/assets/foxdrop-logo.png";
 import { Btn, Card, Num, Progress, SectionTitle, Sheet } from "@/components/ui-kit";
 import { ALLOCATION, NETWORK, REWARDS, ROADMAP, TASKS, TOKEN_PRICE_USD } from "@/lib/config";
 import { claimDayBonus, type UserDoc } from "@/lib/store";
 import { useToast } from "@/components/ui-kit";
-import { GuideBox } from "@/components/GuideBox";
 
 export function HomeTab({ user }: { user: UserDoc }) {
   const [guide, setGuide] = useState(false);
@@ -19,6 +18,17 @@ export function HomeTab({ user }: { user: UserDoc }) {
     { key: "day2", label: "Day 2 · Watch 15 ads", goal: REWARDS.day2AdsGoal, usdt: REWARDS.day2Usdt },
   ];
 
+  useEffect(() => {
+    if (window.localStorage.getItem("foxdrop-guide-seen") === "1") return;
+    const timer = window.setTimeout(() => setGuide(true), 250);
+    return () => window.clearTimeout(timer);
+  }, []);
+
+  const closeGuide = () => {
+    window.localStorage.setItem("foxdrop-guide-seen", "1");
+    setGuide(false);
+  };
+
   const claim = async (key: string, usdt: number, ok: boolean) => {
     if (!ok) return toast.push({ kind: "error", title: "Not completed yet", desc: "Watch more ads to unlock." });
     try {
@@ -31,21 +41,6 @@ export function HomeTab({ user }: { user: UserDoc }) {
 
   return (
     <div className="space-y-5">
-      <GuideBox
-        icon="🦊"
-        title="FOXDROP System Guide"
-        steps={[
-          { do: "Pass the security check", reward: `${REWARDS.securityCheckTokens} FOX` },
-          { do: "Complete Main / Partner / Community tasks", reward: `up to 700 FOX + ${REWARDS.mainTaskUsdt} USDT per main task` },
-          { do: `Watch ${REWARDS.dailyAdsGoal} ads daily`, reward: "10–100 FOX per ad" },
-          { do: "Ad tasks: 10 / 20 / 50 ads watched in total", reward: "0.002 / 0.005 / 0.01 USDT" },
-          { do: "Invite friends", reward: `${REWARDS.referralTokens} FOX + ${REWARDS.referralUsdt} USDT each` },
-          { do: "Referral tasks: 5 / 10 / 25 / 75 friends invited", reward: "0.005 / 0.01 / 0.03 / 0.1 USDT" },
-          { do: `Friend watches day 1 ${REWARDS.day1AdsGoal} ads / day 2 ${REWARDS.day2AdsGoal} ads`, reward: `${REWARDS.day1Usdt} + ${REWARDS.day2Usdt} USDT` },
-          { do: `Withdraw USDT (min ${REWARDS.minWithdraw})`, reward: `Paid within 24h · fee ${REWARDS.withdrawFee} USDT` },
-        ]}
-        note="FOX tokens exchange to USDT in 2027 Q2 · 1 FOX = $0.001 · BEP-20 (BSC)."
-      />
       <section className="bg-hero-glow animate-rise rounded-3xl p-5 text-center">
         <img
           src={logo}
@@ -200,7 +195,7 @@ export function HomeTab({ user }: { user: UserDoc }) {
         </ol>
       </Card>
 
-      <Sheet open={guide} onClose={() => setGuide(false)} title="📖 FOXDROP Guide">
+      <Sheet open={guide} onClose={closeGuide} title="📖 FOXDROP Guide">
         <ol className="space-y-3 text-sm">
           {[
             "Pass the security check and claim your welcome FOX.",
@@ -216,7 +211,7 @@ export function HomeTab({ user }: { user: UserDoc }) {
             </li>
           ))}
         </ol>
-        <Btn className="mt-4" full onClick={() => setGuide(false)}>
+        <Btn className="mt-4" full onClick={closeGuide}>
           Got it
         </Btn>
       </Sheet>

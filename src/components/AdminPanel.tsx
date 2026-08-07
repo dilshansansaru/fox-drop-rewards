@@ -3,16 +3,18 @@ import { Btn, Card, Num, SectionTitle, useToast } from "@/components/ui-kit";
 import {
   approveWithdrawal,
   rejectWithdrawal,
+  useAllReferrals,
   useAllUsers,
   useWithdrawals,
   type Withdrawal,
 } from "@/lib/store";
 
 export function AdminPanel() {
-  const [tab, setTab] = useState<"withdrawals" | "users">("withdrawals");
+  const [tab, setTab] = useState<"withdrawals" | "referrals" | "users">("withdrawals");
   const [txids, setTxids] = useState<Record<string, string>>({});
   const withdrawals = useWithdrawals();
   const users = useAllUsers(tab === "users");
+  const referrals = useAllReferrals(tab === "referrals");
   const toast = useToast();
 
   const approve = async (w: Withdrawal) => {
@@ -44,10 +46,16 @@ export function AdminPanel() {
     <div className="space-y-4">
       <Card className="bg-hero-glow text-center">
         <SectionTitle icon="🛠️">Admin Panel</SectionTitle>
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-3 gap-2">
           <div className="rounded-xl bg-surface-2 p-3">
             <p className="text-[10px] uppercase text-muted-foreground">Pending</p>
             <Num className="text-xl text-gold">{pending.length}</Num>
+          </div>
+          <div className="rounded-xl bg-surface-2 p-3">
+            <p className="text-[10px] uppercase text-muted-foreground">Paid</p>
+            <Num className="text-lg text-success">
+              {withdrawals.filter((w) => w.status === "approved").length}
+            </Num>
           </div>
           <div className="rounded-xl bg-surface-2 p-3">
             <p className="text-[10px] uppercase text-muted-foreground">Requests</p>
@@ -57,7 +65,7 @@ export function AdminPanel() {
       </Card>
 
       <div className="flex gap-2">
-        {(["withdrawals", "users"] as const).map((t) => (
+        {(["withdrawals", "referrals", "users"] as const).map((t) => (
           <button
             key={t}
             onClick={() => setTab(t)}
@@ -65,7 +73,7 @@ export function AdminPanel() {
               tab === t ? "bg-brand-gradient text-primary-foreground" : "bg-surface-2 text-muted-foreground"
             }`}
           >
-            {t === "withdrawals" ? "💰 Withdrawals" : "👤 Users"}
+            {t === "withdrawals" ? "💰 Payouts" : t === "referrals" ? "👥 Referrals" : "👤 Users"}
           </button>
         ))}
       </div>
@@ -134,6 +142,30 @@ export function AdminPanel() {
                 <Num className="block text-[10px] text-secondary">{u.refCount ?? 0} refs</Num>
               </div>
             </div>
+          </Card>
+        ))}
+
+      {tab === "referrals" &&
+        referrals.map((r) => (
+          <Card key={r.id}>
+            <div className="flex items-center justify-between gap-3">
+              <div className="min-w-0">
+                <p className="truncate text-sm">{r.name} <span className="text-muted-foreground">@{r.username || "none"}</span></p>
+                <p className="text-num text-[10px] text-muted-foreground">Inviter {r.inviterId}</p>
+                <p className="text-num text-[10px] text-muted-foreground">User {r.userId}</p>
+              </div>
+              <div className="text-right">
+                <p className={`text-btn text-[11px] uppercase ${r.status === "blocked" ? "text-destructive" : "text-success"}`}>{r.status}</p>
+                <Num className="block text-[10px] text-gold">{r.tokens} FOX</Num>
+                <Num className="block text-[10px] text-success">{r.usdt.toFixed(4)} USDT</Num>
+              </div>
+            </div>
+            <div className="mt-2 grid grid-cols-3 gap-2 text-center text-[10px]">
+              <div className="rounded-lg bg-surface-2 p-2">📺 {r.ads ?? 0}</div>
+              <div className="rounded-lg bg-surface-2 p-2">D1 {r.milestones?.["day1"] ? "✅" : "⬜"}</div>
+              <div className="rounded-lg bg-surface-2 p-2">D2 {r.milestones?.["day2"] ? "✅" : "⬜"}</div>
+            </div>
+            {r.reason && <p className="mt-2 text-[10px] text-destructive">⚠️ {r.reason}</p>}
           </Card>
         ))}
     </div>

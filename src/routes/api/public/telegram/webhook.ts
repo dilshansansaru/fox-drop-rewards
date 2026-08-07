@@ -3,16 +3,32 @@ import { BRAND } from "@/lib/config";
 import { REWARDS } from "@/lib/config";
 import { mainButtons, sendPhotoOrText, sendMessage, notifyAdmins } from "@/lib/bot.server";
 
-const WELCOME = `🦊 <b>FOXDROP AIRDROP</b>
+const WELCOME = `🦊 <b>WELCOME TO FOXDROP AIRDROP</b>
 
-Welcome to the official FOXDROP airdrop bot!
+Earn FOX tokens and real USDT rewards from the official FOXDROP Telegram Mini App.
 
-🎁 <b>Instant Referral Reward:</b> ${REWARDS.referralTokens} FOX + ${REWARDS.referralUsdt} USDT
-📺 <b>Daily Ads:</b> up to ${REWARDS.dailyAdsGoal} ads / day
-💰 <b>Withdraw:</b> min ${REWARDS.minWithdraw} USDT (BEP-20) — fee ${REWARDS.withdrawFee} USDT
-💎 <b>1 FOX = $0.001</b> · Token exchange & full withdraw opens <b>2027 Q2</b>
+🎁 <b>WELCOME & TASK REWARDS</b>
+• Pass the security check and complete Telegram tasks
+• Watch ads from multiple providers and collect FOX
+• Ad tasks: 10 / 20 / 50 total ads → 0.002 / 0.005 / 0.01 USDT
 
-Tap <b>🚀 Open Mini App</b> to start earning.`;
+👥 <b>REFERRAL SYSTEM</b>
+• Every verified friend → ${REWARDS.referralTokens} FOX + ${REWARDS.referralUsdt} USDT instantly
+• Friend watches ${REWARDS.day1AdsGoal} ads on day 1 → +${REWARDS.day1Usdt} USDT
+• Friend watches ${REWARDS.day2AdsGoal} ads on day 2 → +${REWARDS.day2Usdt} USDT
+• Invite 5 / 10 / 25 / 75 friends → 0.005 / 0.01 / 0.03 / 0.1 USDT
+
+💰 <b>WITHDRAWALS</b>
+• Minimum: ${REWARDS.minWithdraw} USDT
+• Network: BEP-20 (BSC)
+• Fee: ${REWARDS.withdrawFee} USDT
+• Processing: within 24 hours
+• Bot notifications are sent for request, approval, rejection and payment proof
+
+💎 <b>FOX TOKEN</b>
+1 FOX = $0.001 · FOX exchange and full token withdrawal open in <b>2027 Q2</b>.
+
+Tap <b>🚀 Open Mini App</b> now. Your live balance, referral progress, leaderboard and withdrawal history are available inside.`;
 
 export const Route = createFileRoute("/api/public/telegram/webhook")({
   server: {
