@@ -53,13 +53,17 @@ export function mainButtons(extra: Btn[] = []) {
 }
 
 export async function sendMessage(chatId: string | number, text: string, buttons?: unknown) {
-  return call("sendMessage", {
+  const response = await call("sendMessage", {
     chat_id: chatId,
     text,
     parse_mode: "HTML",
     disable_web_page_preview: true,
     ...(buttons ? { reply_markup: buttons } : {}),
   });
+  if (!response.ok) {
+    throw new Error(response.description ?? `Telegram could not deliver a message to ${chatId}`);
+  }
+  return response;
 }
 
 export async function sendPhotoOrText(
@@ -91,7 +95,17 @@ export async function getChatMember(chat: string, userId: number) {
 }
 
 export async function notifyAdmins(text: string, buttons?: unknown) {
-  await Promise.all(adminIds().map((id) => sendMessage(id, text, buttons)));
+  const ids = adminIds();
+  if (ids.length === 0) {
+    console.error("ADMIN_CHAT_IDS is not configured");
+    return;
+  }
+  const results = await Promise.allSettled(ids.map((id) => sendMessage(id, text, buttons)));
+  results.forEach((result, index) => {
+    if (result.status === "rejected") {
+      console.error(`Admin notification failed for ${ids[index]}`, result.reason);
+    }
+  });
 }
 
 /** Validates Telegram WebApp initData (HMAC-SHA256) and returns the user id. */

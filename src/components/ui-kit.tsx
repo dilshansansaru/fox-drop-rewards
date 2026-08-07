@@ -157,7 +157,7 @@ export function Sheet({
   if (!open) return null;
   return (
     <div className="fixed inset-0 z-90 flex items-end justify-center bg-background/80 backdrop-blur-sm">
-      <div className="animate-rise bg-panel w-full max-w-md rounded-t-3xl border border-border p-5 pb-8">
+      <div className="animate-rise bg-panel max-h-[88vh] w-full max-w-md overflow-y-auto rounded-t-3xl border border-border p-5 pb-8">
         <div className="mb-4 flex items-center justify-between">
           <h3 className="text-lg uppercase">{title}</h3>
           <button onClick={onClose} className="text-muted-foreground" aria-label="Close">
