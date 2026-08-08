@@ -429,7 +429,7 @@ export function AdminPanel() {
                     🚫 Block & revert
                   </Btn>
                 )}
-                <Btn size="sm" variant="ghost" onClick={() => setSearch(r.inviterId) || setTab("users")}>
+                <Btn size="sm" variant="ghost" onClick={() => { setSearch(r.inviterId); setTab("users"); }}>
                   👤 Inviter
                 </Btn>
               </div>
@@ -520,7 +520,7 @@ export function AdminPanel() {
               ))}
               {REFER_TASK_MILESTONES.map((m) => (
                 <div key={m.key} className="flex justify-between rounded-lg bg-surface-2 px-3 py-2">
-                  <span className="text-muted-foreground">Refer task · {m.refs} friends</span>
+                  <span className="text-muted-foreground">Refer task · {m.count} friends</span>
                   <Num className="text-success">{m.usdt} USDT</Num>
                 </div>
               ))}
