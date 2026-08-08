@@ -13,13 +13,15 @@ export function GuideBox({
   icon = "📖",
   steps,
   note,
+  defaultOpen = false,
 }: {
   title?: string;
   icon?: string;
   steps: GuideStep[];
   note?: string;
+  defaultOpen?: boolean;
 }) {
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(defaultOpen);
 
   return (
     <Card>

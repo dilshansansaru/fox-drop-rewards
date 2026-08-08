@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import logo from "@/assets/foxdrop-logo.png";
 import { Btn, Card, Num, Progress, SectionTitle, Sheet } from "@/components/ui-kit";
+import { GuideBox } from "@/components/GuideBox";
 import { ALLOCATION, NETWORK, REWARDS, ROADMAP, TASKS, TOKEN_PRICE_USD } from "@/lib/config";
 import { claimDayBonus, type UserDoc } from "@/lib/store";
 import { useToast } from "@/components/ui-kit";
@@ -41,6 +42,20 @@ export function HomeTab({ user }: { user: UserDoc }) {
 
   return (
     <div className="space-y-5">
+      <GuideBox
+        icon="📖"
+        title="How FOXDROP works"
+        defaultOpen
+        steps={[
+          { do: "Pass the security check on first open", reward: `${REWARDS.securityCheckTokens} FOX` },
+          { do: "Complete main tasks (join channel & group)", reward: `${REWARDS.mainTaskUsdt} USDT each` },
+          { do: `Watch up to ${REWARDS.dailyAdsGoal} ads every day`, reward: "10-100 FOX per ad + USDT ad tasks" },
+          { do: "Invite friends with your referral link", reward: `${REWARDS.referralTokens} FOX + ${REWARDS.referralUsdt} USDT each` },
+          { do: "Friend watches 10 ads on day 1 / 15 ads on day 2", reward: "+0.005 USDT each milestone" },
+          { do: `Withdraw USDT from ${REWARDS.minWithdraw} USDT to BEP-20`, reward: `Paid within 24h (fee ${REWARDS.withdrawFee} USDT)` },
+        ]}
+        note="FOX to USDT exchange unlocks in 2027 Q2. USDT rewards are withdrawable now."
+      />
       <section className="bg-hero-glow animate-rise rounded-3xl p-5 text-center">
         <img
           src={logo}
