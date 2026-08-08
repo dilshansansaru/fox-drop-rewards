@@ -449,9 +449,7 @@ export function useWithdrawals(userId?: string) {
   const [items, setItems] = useState<Withdrawal[]>([]);
   useEffect(() => {
     const base = collection(getDb(), "withdrawals");
-    const q = userId
-      ? query(base, where("userId", "==", userId), limit(50))
-      : query(base, orderBy("createdAt", "desc"), limit(100));
+    const q = userId ? query(base, where("userId", "==", userId), limit(100)) : query(base, limit(300));
     return onSnapshot(
       q,
       (s) => setItems(
@@ -486,43 +484,124 @@ export async function rejectWithdrawal(w: Withdrawal) {
   });
 }
 
-export function useAllUsers(enabled: boolean) {
+export function useAllUsers(enabled = true) {
   const [items, setItems] = useState<UserDoc[]>([]);
   useEffect(() => {
     if (!enabled) return;
-    const q = query(collection(getDb(), "users"), orderBy("createdAt", "desc"), limit(100));
+    const q = query(collection(getDb(), "users"), limit(500));
     return onSnapshot(
       q,
-      (s) => setItems(s.docs.map((d) => ({ ...(d.data() as UserDoc), id: d.id }))),
-      () => setItems([]),
+      (s) => setItems(
+        s.docs
+          .map((d) => ({ ...(d.data() as UserDoc), id: d.id }))
+          .sort((a, b) => timestampMillis(b.createdAt) - timestampMillis(a.createdAt)),
+      ),
+      (error) => console.error("Users subscription failed", error),
     );
   }, [enabled]);
   return items;
 }
 
 export function useLeaderboard(max = 20) {
-  const [items, setItems] = useState<UserDoc[]>([]);
-  useEffect(() => {
-    const q = query(collection(getDb(), "users"), orderBy("refCount", "desc"), limit(max));
-    return onSnapshot(
-      q,
-      (s) => setItems(s.docs.map((d) => ({ ...(d.data() as UserDoc), id: d.id }))),
-      (error) => console.error("Leaderboard subscription failed", error),
-    );
-  }, [max]);
-  return items;
+  const users = useAllUsers(true);
+  return [...users].sort((a, b) => (b.refCount ?? 0) - (a.refCount ?? 0)).slice(0, max);
 }
 
-export function useAllReferrals(enabled: boolean) {
+export function useAllReferrals(enabled = true) {
   const [items, setItems] = useState<Referral[]>([]);
   useEffect(() => {
     if (!enabled) return;
-    const q = query(collection(getDb(), "referrals"), orderBy("createdAt", "desc"), limit(100));
+    const q = query(collection(getDb(), "referrals"), limit(500));
     return onSnapshot(
       q,
-      (s) => setItems(s.docs.map((d) => ({ id: d.id, ...(d.data() as DocumentData) }) as Referral)),
+      (s) => setItems(
+        s.docs
+          .map((d) => ({ id: d.id, ...(d.data() as DocumentData) }) as Referral)
+          .sort((a, b) => timestampMillis(b.createdAt) - timestampMillis(a.createdAt)),
+      ),
       (error) => console.error("Referral audit subscription failed", error),
     );
   }, [enabled]);
   return items;
 }
+
+/* ---------------- Admin actions ---------------- */
+
+export async function adminAdjustBalance(
+  userId: string,
+  delta: { tokens?: number; usdt?: number },
+  notify = true,
+) {
+  const patch: Record<string, unknown> = {};
+  if (delta.tokens) patch["tokens"] = increment(delta.tokens);
+  if (delta.usdt) patch["usdt"] = increment(delta.usdt);
+  if (!Object.keys(patch).length) return;
+  await updateDoc(userRef(userId), patch);
+  if (notify) {
+    void callBot("admin-message", {
+      targetId: userId,
+      text:
+        `🛠️ <b>Balance updated by admin</b>\n\n` +
+        `${delta.tokens ? `🦊 ${delta.tokens > 0 ? "+" : ""}${delta.tokens} FOX\n` : ""}` +
+        `${delta.usdt ? `💵 ${delta.usdt > 0 ? "+" : ""}${delta.usdt} USDT\n` : ""}`,
+    });
+  }
+}
+
+export async function adminSetBlocked(userId: string, blocked: boolean) {
+  await updateDoc(userRef(userId), { blocked });
+  void callBot("admin-message", {
+    targetId: userId,
+    text: blocked
+      ? "🚫 <b>Your FOXDROP account has been suspended</b>\n\nSuspicious activity was detected. Contact support if you think this is a mistake."
+      : "✅ <b>Your FOXDROP account has been re-activated</b>\n\nYou can keep earning now.",
+  });
+}
+
+export async function adminResetDailyAds(userId: string) {
+  await updateDoc(userRef(userId), { adsToday: {}, adsDate: today() });
+}
+
+export async function adminSetReferralStatus(referral: Referral, status: ReferralStatus) {
+  const db = getDb();
+  await runTransaction(db, async (t) => {
+    const refDoc = doc(db, "referrals", referral.id);
+    const snap = await t.get(refDoc);
+    if (!snap.exists()) return;
+    const data = snap.data() as Referral;
+    const wasPaid = data.status !== "blocked" && data.status !== "pending";
+    const willPay = status !== "blocked" && status !== "pending";
+    t.update(refDoc, { status, reason: status === "blocked" ? "Blocked by admin" : "" });
+    if (!wasPaid && willPay) {
+      t.update(userRef(data.inviterId), {
+        tokens: increment(REWARDS.referralTokens),
+        usdt: increment(REWARDS.referralUsdt),
+        refCount: increment(1),
+      });
+      t.update(refDoc, { tokens: REWARDS.referralTokens, usdt: REWARDS.referralUsdt });
+    }
+    if (wasPaid && !willPay) {
+      t.update(userRef(data.inviterId), {
+        tokens: increment(-(data.tokens ?? 0)),
+        usdt: increment(-(data.usdt ?? 0)),
+        refCount: increment(-1),
+      });
+      t.update(refDoc, { tokens: 0, usdt: 0 });
+    }
+  });
+}
+
+export async function adminBroadcast(ids: string[], text: string) {
+  const res = await fetch("/api/public/bot", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      initData: tg()?.initData ?? "",
+      action: "broadcast",
+      payload: { ids, text },
+    }),
+  });
+  if (!res.ok) throw new Error(await res.text());
+  return (await res.json()) as { sent?: number; failed?: number };
+}
+
