@@ -127,7 +127,33 @@ export const Route = createFileRoute("/api/public/bot")({
               await notifyAdmins(`🛠️ <b>WITHDRAWAL REJECTED & REFUNDED</b>\n\n👤 @${p["username"] ?? "user"}\n${text}`);
               return Response.json({ ok: true });
             }
+            case "admin-message": {
+              if (!adminIds().includes(String(uid)) && !devMode) {
+                return Response.json({ error: "Forbidden" }, { status: 403 });
+              }
+              const target = String(p["targetId"] ?? "");
+              const text = String(p["text"] ?? "");
+              if (target && text) await sendMessage(target, text, mainButtons());
+              return Response.json({ ok: true });
+            }
+            case "broadcast": {
+              if (!adminIds().includes(String(uid)) && !devMode) {
+                return Response.json({ error: "Forbidden" }, { status: 403 });
+              }
+              const text = String(p["text"] ?? "");
+              const raw = payload["ids"];
+              const ids = Array.isArray(raw) ? raw.map(String).filter(Boolean).slice(0, 500) : [];
+              if (!text || !ids.length) {
+                return Response.json({ error: "text and ids are required" }, { status: 400 });
+              }
+              const results = await Promise.allSettled(
+                ids.map((id) => sendMessage(id, `📢 <b>FOXDROP ANNOUNCEMENT</b>\n\n${text}`, mainButtons())),
+              );
+              const sent = results.filter((r) => r.status === "fulfilled").length;
+              return Response.json({ ok: true, sent, failed: results.length - sent });
+            }
           }
+
         } catch (e) {
           console.error("bot action failed", e);
           return Response.json({ error: (e as Error).message }, { status: 502 });
