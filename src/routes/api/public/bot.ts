@@ -22,9 +22,12 @@ const schema = z.object({
     "withdraw-request",
     "withdraw-approved",
     "withdraw-rejected",
+    "admin-message",
+    "broadcast",
   ]),
   payload: z.record(z.string(), z.unknown()).default({}),
 });
+
 
 const txButtons = (txid?: string) => ({
   inline_keyboard: [
