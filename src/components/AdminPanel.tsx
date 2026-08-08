@@ -17,6 +17,7 @@ import {
   adminSetBlocked,
   adminSetReferralStatus,
   approveWithdrawal,
+  isLocalMode,
   rejectWithdrawal,
   useAllReferrals,
   useAllUsers,
@@ -179,6 +180,16 @@ export function AdminPanel() {
 
   return (
     <div className="space-y-4">
+      {isLocalMode() && (
+        <Card className="border border-destructive/50">
+          <p className="text-xs text-destructive">
+            ⚠️ Firestore is unreachable (permission denied), so the app is running in offline mode and no
+            live users/withdrawals can be loaded. Deploy <code>firestore.rules</code> in the Firebase
+            console to connect the admin panel to real data.
+          </p>
+        </Card>
+      )}
+
       <Card className="bg-hero-glow text-center">
         <SectionTitle icon="🛠️">Admin Control Center</SectionTitle>
         <div className="grid grid-cols-3 gap-2">
