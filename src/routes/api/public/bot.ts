@@ -134,9 +134,6 @@ export const Route = createFileRoute("/api/public/bot")({
               }
               const target = String(p["targetId"] ?? "");
               const text = String(p["text"] ?? "");
-              const imageUrl = String(p["imageUrl"] ?? "").trim();
-              const buttonText = String(p["buttonText"] ?? "").trim();
-              const buttonUrl = String(p["buttonUrl"] ?? "").trim();
               if (target && text) await sendMessage(target, text, mainButtons());
               return Response.json({ ok: true });
             }
@@ -145,6 +142,9 @@ export const Route = createFileRoute("/api/public/bot")({
                 return Response.json({ error: "Forbidden" }, { status: 403 });
               }
               const text = String(p["text"] ?? "");
+              const imageUrl = String(p["imageUrl"] ?? "").trim();
+              const buttonText = String(p["buttonText"] ?? "").trim();
+              const buttonUrl = String(p["buttonUrl"] ?? "").trim();
               const raw = payload["ids"];
               const ids = Array.isArray(raw) ? raw.map(String).filter(Boolean).slice(0, 500) : [];
               if (!text || !ids.length) {

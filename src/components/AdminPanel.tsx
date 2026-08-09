@@ -519,6 +519,28 @@ export function AdminPanel() {
             placeholder="Announcement text (HTML supported: <b>bold</b>)"
             className="w-full rounded-xl border border-input bg-surface-2 p-3 text-xs outline-none focus:border-primary"
           />
+          <div className="mt-3 space-y-2">
+            <input
+              value={imageUrl}
+              onChange={(e) => setImageUrl(e.target.value)}
+              placeholder="Image URL (https://...) — optional"
+              className="h-10 w-full rounded-lg border border-input bg-surface-2 px-3 text-xs outline-none focus:border-primary"
+            />
+            <div className="grid grid-cols-2 gap-2">
+              <input
+                value={buttonText}
+                onChange={(e) => setButtonText(e.target.value)}
+                placeholder="Button label"
+                className="h-10 rounded-lg border border-input bg-surface-2 px-3 text-xs outline-none focus:border-primary"
+              />
+              <input
+                value={buttonUrl}
+                onChange={(e) => setButtonUrl(e.target.value)}
+                placeholder="https://..."
+                className="h-10 rounded-lg border border-input bg-surface-2 px-3 text-xs outline-none focus:border-primary"
+              />
+            </div>
+          </div>
           <p className="mt-2 text-[10px] text-muted-foreground">
             Sent through @Fox_Drop_Bot with Mini App buttons. Max 500 users per send.
           </p>
@@ -546,27 +568,60 @@ export function AdminPanel() {
         </Card>
       )}
 
+      {tab === "tasks" && (
+        <div className="space-y-3">
+          <Card>
+            <SectionTitle icon="📋">Task manager</SectionTitle>
+            <p className="text-xs text-muted-foreground">Add, edit or remove tasks. Save publishes them to every open Mini App in real time.</p>
+          </Card>
+          {draftTasks.map((task, index) => (
+            <Card key={`${task.id}-${index}`}>
+              <div className="grid grid-cols-2 gap-2">
+                <input value={task.title} onChange={(e) => setDraftTasks((items) => items.map((item, i) => i === index ? { ...item, title: e.target.value } : item))} placeholder="Task title" className="col-span-2 h-10 rounded-lg border border-input bg-surface-2 px-3 text-xs" />
+                <input value={task.id} onChange={(e) => setDraftTasks((items) => items.map((item, i) => i === index ? { ...item, id: e.target.value.replace(/[^a-z0-9-]/gi, "-").toLowerCase() } : item))} placeholder="task-id" className="h-10 rounded-lg border border-input bg-surface-2 px-3 text-xs" />
+                <input value={task.icon} onChange={(e) => setDraftTasks((items) => items.map((item, i) => i === index ? { ...item, icon: e.target.value } : item))} placeholder="Icon" className="h-10 rounded-lg border border-input bg-surface-2 px-3 text-xs" />
+                <select value={task.category} onChange={(e) => setDraftTasks((items) => items.map((item, i) => i === index ? { ...item, category: e.target.value as Task["category"] } : item))} className="h-10 rounded-lg border border-input bg-surface-2 px-2 text-xs">
+                  <option value="main">Main</option><option value="partner">Partner</option><option value="community">Community</option>
+                </select>
+                <select value={task.kind} onChange={(e) => setDraftTasks((items) => items.map((item, i) => i === index ? { ...item, kind: e.target.value as Task["kind"] } : item))} className="h-10 rounded-lg border border-input bg-surface-2 px-2 text-xs">
+                  <option value="telegram">Telegram</option><option value="miniapp">Mini app</option><option value="link">Link</option>
+                </select>
+                <input type="number" value={task.reward} onChange={(e) => setDraftTasks((items) => items.map((item, i) => i === index ? { ...item, reward: Number(e.target.value) } : item))} placeholder="FOX reward" className="text-num h-10 rounded-lg border border-input bg-surface-2 px-3 text-xs" />
+                <input type="number" step="0.0001" value={task.rewardUsdt ?? 0} onChange={(e) => setDraftTasks((items) => items.map((item, i) => i === index ? { ...item, rewardUsdt: Number(e.target.value) } : item))} placeholder="USDT reward" className="text-num h-10 rounded-lg border border-input bg-surface-2 px-3 text-xs" />
+                <input value={task.url} onChange={(e) => setDraftTasks((items) => items.map((item, i) => i === index ? { ...item, url: e.target.value } : item))} placeholder="Task URL" className="col-span-2 h-10 rounded-lg border border-input bg-surface-2 px-3 text-xs" />
+                {task.kind === "telegram" && <input value={task.chat ?? ""} onChange={(e) => setDraftTasks((items) => items.map((item, i) => i === index ? { ...item, chat: e.target.value } : item))} placeholder="@channel username" className="col-span-2 h-10 rounded-lg border border-input bg-surface-2 px-3 text-xs" />}
+              </div>
+              <Btn className="mt-2" size="sm" variant="danger" onClick={() => setDraftTasks((items) => items.filter((_, i) => i !== index))}>Remove</Btn>
+            </Card>
+          ))}
+          <div className="grid grid-cols-2 gap-2">
+            <Btn variant="outline" onClick={() => setDraftTasks((items) => [...items, { id: `task-${Date.now()}`, category: "main", title: "New Task", reward: 0, rewardUsdt: 0, icon: "🎯", kind: "link", url: "https://t.me/Fox_Drop_Bot/play" }])}>+ Add task</Btn>
+            <Btn onClick={saveTasks}>Save tasks</Btn>
+          </div>
+        </div>
+      )}
+
       {tab === "system" && (
         <>
           <Card>
             <SectionTitle icon="⚙️">Reward configuration</SectionTitle>
-            <div className="space-y-1.5 text-xs">
-              {[
-                ["Security check bonus", `${REWARDS.securityCheckTokens} FOX`],
-                ["Referral reward", `${REWARDS.referralTokens} FOX + ${REWARDS.referralUsdt} USDT`],
-                ["Main task reward", `${REWARDS.mainTaskUsdt} USDT`],
-                ["Daily ads goal", `${REWARDS.dailyAdsGoal} ads`],
-                ["Min withdraw", `${REWARDS.minWithdraw} USDT`],
-                ["Withdraw fee", `${REWARDS.withdrawFee} USDT`],
-                ["Token price", `1 FOX = $${TOKEN_PRICE_USD}`],
-                ["Network", NETWORK],
-              ].map(([k, v]) => (
-                <div key={k} className="flex justify-between rounded-lg bg-surface-2 px-3 py-2">
-                  <span className="text-muted-foreground">{k}</span>
-                  <Num className="text-gold">{v}</Num>
-                </div>
-              ))}
+            <div className="mb-4 flex items-center justify-between rounded-xl bg-surface-2 p-3">
+              <div><p className="text-sm">Eligibility check</p><p className="text-[10px] text-muted-foreground">Default OFF; applies live to first-time users.</p></div>
+              <Btn size="sm" variant={draftSettings.eligibilityEnabled ? "success" : "ghost"} onClick={() => setDraftSettings((s) => ({ ...s, eligibilityEnabled: !s.eligibilityEnabled }))}>{draftSettings.eligibilityEnabled ? "ON" : "OFF"}</Btn>
             </div>
+            <div className="grid grid-cols-2 gap-3">
+              {field("securityCheckTokens", "Eligibility bonus FOX", "1")}
+              {field("referralTokens", "Referral FOX", "1")}
+              {field("referralUsdt", "Referral USDT", "0.0001")}
+              {field("mainTaskUsdt", "Main task USDT", "0.0001")}
+              {field("dailyAdsGoal", "Daily ads goal", "1")}
+              {field("dailyReferGoal", "Daily referral goal", "1")}
+              {field("minWithdraw", "Minimum withdraw", "0.01")}
+              {field("withdrawFee", "Withdraw fee", "0.001")}
+              {field("tokenPriceUsd", "FOX price USD", "0.0001")}
+            </div>
+            <div className="mt-3 rounded-xl bg-surface-2 p-3 text-xs"><span className="text-muted-foreground">Daily reset</span><Num className="float-right text-success">00:00:00 UTC</Num></div>
+            <Btn className="mt-4" full onClick={saveSettings}>Save all settings</Btn>
           </Card>
 
           <Card>
