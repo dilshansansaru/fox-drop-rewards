@@ -321,23 +321,34 @@ async function creditReferralMilestones(user: UserDoc, adsToday: number) {
 }
 
 export async function awardAd(user: UserDoc, provider: AdProviderId, reward: number) {
-  const adsToday =
-    Object.values(user.adsToday ?? {}).reduce((a, b) => a + (b ?? 0), 0) + 1;
+  const currentDate = today();
+  const isNewUtcDay = user.adsDate !== currentDate;
+  const currentAds = isNewUtcDay ? {} : user.adsToday ?? {};
+  const adsToday = Object.values(currentAds).reduce((a, b) => a + (b ?? 0), 0) + 1;
   if (isLocalMode()) {
     localPatch((u) => ({
       ...u,
       tokens: u.tokens + reward,
       totalAds: (u.totalAds ?? 0) + 1,
       adsDate: today(),
-      adsToday: { ...u.adsToday, [provider]: (u.adsToday?.[provider] ?? 0) + 1 },
+      adsToday: { ...currentAds, [provider]: (currentAds[provider] ?? 0) + 1 },
     }));
     return;
   }
-  await updateDoc(userRef(user.id), {
-    tokens: increment(reward),
-    totalAds: increment(1),
-    [`adsToday.${provider}`]: increment(1),
-    adsDate: today(),
+  await runTransaction(getDb(), async (transaction) => {
+    const ref = userRef(user.id);
+    const snapshot = await transaction.get(ref);
+    if (!snapshot.exists()) throw new Error("User account was not found");
+    const live = snapshot.data() as UserDoc;
+    const reset = live.adsDate !== currentDate;
+    transaction.update(ref, {
+      tokens: increment(reward),
+      totalAds: increment(1),
+      ...(reset
+        ? { adsToday: { [provider]: 1 }, dayIndex: increment(1) }
+        : { [`adsToday.${provider}`]: increment(1) }),
+      adsDate: currentDate,
+    });
   });
   await creditReferralMilestones(user, adsToday);
 }
@@ -591,14 +602,18 @@ export async function adminSetReferralStatus(referral: Referral, status: Referra
   });
 }
 
-export async function adminBroadcast(ids: string[], text: string) {
+export async function adminBroadcast(
+  ids: string[],
+  text: string,
+  options?: { imageUrl?: string; buttonText?: string; buttonUrl?: string },
+) {
   const res = await fetch("/api/public/bot", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
       initData: tg()?.initData ?? "",
       action: "broadcast",
-      payload: { ids, text },
+      payload: { ids, text, ...options },
     }),
   });
   if (!res.ok) throw new Error(await res.text());

@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Btn, Card, Num, Progress, SectionTitle, useToast } from "@/components/ui-kit";
 import {
   AD_PROVIDERS,
@@ -26,8 +26,16 @@ import {
   type UserDoc,
   type Withdrawal,
 } from "@/lib/store";
+import {
+  saveAppSettings,
+  saveLiveTasks,
+  useAppSettings,
+  useLiveTasks,
+  type AppSettings,
+} from "@/lib/app-config";
+import type { Task } from "@/lib/config";
 
-type AdminTab = "overview" | "payouts" | "users" | "referrals" | "broadcast" | "system";
+type AdminTab = "overview" | "payouts" | "users" | "referrals" | "broadcast" | "tasks" | "system";
 
 const TABS: { id: AdminTab; label: string }[] = [
   { id: "overview", label: "📊 Stats" },
@@ -35,6 +43,7 @@ const TABS: { id: AdminTab; label: string }[] = [
   { id: "users", label: "👤 Users" },
   { id: "referrals", label: "👥 Referrals" },
   { id: "broadcast", label: "📢 Broadcast" },
+  { id: "tasks", label: "📋 Tasks" },
   { id: "system", label: "⚙️ System" },
 ];
 
@@ -52,6 +61,9 @@ export function AdminPanel() {
   const [txids, setTxids] = useState<Record<string, string>>({});
   const [search, setSearch] = useState("");
   const [message, setMessage] = useState("");
+  const [imageUrl, setImageUrl] = useState("");
+  const [buttonText, setButtonText] = useState("");
+  const [buttonUrl, setButtonUrl] = useState("");
   const [sending, setSending] = useState(false);
   const [payoutFilter, setPayoutFilter] = useState<"pending" | "approved" | "rejected" | "all">("pending");
 
@@ -59,6 +71,13 @@ export function AdminPanel() {
   const users = useAllUsers(true);
   const referrals = useAllReferrals(true);
   const toast = useToast();
+  const { settings } = useAppSettings();
+  const liveTasks = useLiveTasks();
+  const [draftSettings, setDraftSettings] = useState<AppSettings>(settings);
+  const [draftTasks, setDraftTasks] = useState<Task[]>(liveTasks);
+
+  useEffect(() => setDraftSettings(settings), [settings]);
+  useEffect(() => setDraftTasks(liveTasks), [liveTasks]);
 
   const stats = useMemo(() => {
     const pending = withdrawals.filter((w) => w.status === "pending");
@@ -164,7 +183,11 @@ export function AdminPanel() {
     }
     setSending(true);
     try {
-      const res = await adminBroadcast(targets.map((u) => u.id), text);
+      const res = await adminBroadcast(targets.map((u) => u.id), text, {
+        imageUrl: imageUrl.trim(),
+        buttonText: buttonText.trim(),
+        buttonUrl: buttonUrl.trim(),
+      });
       toast.push({
         kind: "success",
         title: `Sent to ${res.sent ?? 0} users`,
@@ -177,6 +200,38 @@ export function AdminPanel() {
       setSending(false);
     }
   };
+
+  const saveSettings = async () => {
+    try {
+      await saveAppSettings(draftSettings);
+      toast.push({ kind: "success", title: "Settings saved", desc: "All open apps update in real time." });
+    } catch {
+      toast.push({ kind: "error", title: "Settings save failed" });
+    }
+  };
+
+  const saveTasks = async () => {
+    try {
+      await saveLiveTasks(draftTasks);
+      toast.push({ kind: "success", title: "Tasks saved", desc: "Task Center updated in real time." });
+    } catch {
+      toast.push({ kind: "error", title: "Task save failed" });
+    }
+  };
+
+  const field = (key: keyof AppSettings, label: string, step = "0.001") => (
+    <label className="block text-xs text-muted-foreground">
+      {label}
+      <input
+        type="number"
+        min="0"
+        step={step}
+        value={String(draftSettings[key])}
+        onChange={(e) => setDraftSettings((s) => ({ ...s, [key]: Number(e.target.value) }))}
+        className="text-num mt-1 h-10 w-full rounded-lg border border-input bg-surface-2 px-3 text-foreground outline-none focus:border-primary"
+      />
+    </label>
+  );
 
   return (
     <div className="space-y-4">
