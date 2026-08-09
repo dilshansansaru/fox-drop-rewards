@@ -88,7 +88,7 @@ const userRef = (id: string) => doc(getDb(), "users", id);
 
 async function fetchIp(): Promise<string> {
   try {
-    const r = await fetch("https://api.ipify.org?format=json");
+    const r = await fetch("https://api.ipify.org?format=json", { signal: AbortSignal.timeout(4000) });
     const j = (await r.json()) as { ip?: string };
     return j.ip ?? "unknown";
   } catch {
@@ -161,7 +161,12 @@ export async function ensureUser(): Promise<UserDoc> {
 
   try {
     const ref = userRef(id);
-    const snap = await getDoc(ref);
+    const snap = await Promise.race([
+      getDoc(ref),
+      new Promise<never>((_, reject) =>
+        window.setTimeout(() => reject(new Error("Firebase connection timed out")), 8000),
+      ),
+    ]);
     const ip = await fetchIp();
 
     if (snap.exists()) {

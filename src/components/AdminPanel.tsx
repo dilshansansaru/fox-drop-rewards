@@ -651,7 +651,7 @@ export function AdminPanel() {
           <Card>
             <SectionTitle icon="📺">Ad providers</SectionTitle>
             <div className="space-y-2">
-              {AD_PROVIDERS.map((p) => {
+              {draftSettings.adProviders.map((p, index) => {
                 const watched = users.reduce((a, u) => a + (u.adsToday?.[p.id] ?? 0), 0);
                 return (
                   <div key={p.id} className="rounded-xl bg-surface-2 p-3">
@@ -669,10 +669,19 @@ export function AdminPanel() {
                     <p className="mt-1 text-[10px] text-muted-foreground">
                       <Num>{watched}</Num> ads watched today
                     </p>
+                    <div className="mt-2 grid grid-cols-2 gap-2">
+                      <label className="text-[10px] text-muted-foreground">FOX / ad
+                        <input type="number" min="0" value={p.reward} onChange={(e) => setDraftSettings((s) => ({ ...s, adProviders: s.adProviders.map((provider, i) => i === index ? { ...provider, reward: Number(e.target.value) } : provider) }))} className="text-num mt-1 h-9 w-full rounded-lg border border-input bg-background px-2 text-xs text-foreground" />
+                      </label>
+                      <label className="text-[10px] text-muted-foreground">Daily limit
+                        <input type="number" min="0" value={p.dailyLimit} onChange={(e) => setDraftSettings((s) => ({ ...s, adProviders: s.adProviders.map((provider, i) => i === index ? { ...provider, dailyLimit: Number(e.target.value) } : provider) }))} className="text-num mt-1 h-9 w-full rounded-lg border border-input bg-background px-2 text-xs text-foreground" />
+                      </label>
+                    </div>
                   </div>
                 );
               })}
             </div>
+            <Btn className="mt-3" full onClick={saveSettings}>Save provider settings</Btn>
           </Card>
         </>
       )}
