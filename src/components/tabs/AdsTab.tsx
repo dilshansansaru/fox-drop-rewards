@@ -1,14 +1,16 @@
 import { useState } from "react";
 import { Btn, Card, Num, Progress, SectionTitle, useToast } from "@/components/ui-kit";
-import { AD_PROVIDERS, AD_TASK_MILESTONES, REWARDS, type AdProviderId } from "@/lib/config";
+import { AD_TASK_MILESTONES, type AdProviderId } from "@/lib/config";
 import { showAd } from "@/lib/ads";
 import { awardAd, type UserDoc } from "@/lib/store";
 import { GuideBox } from "@/components/GuideBox";
 import { MilestoneList } from "@/components/MilestoneList";
+import { useAppSettings } from "@/lib/app-config";
 
 export function AdsTab({ user }: { user: UserDoc }) {
   const [busy, setBusy] = useState<AdProviderId | null>(null);
   const toast = useToast();
+  const { settings } = useAppSettings();
 
   const total = Object.values(user.adsToday ?? {}).reduce((a, b) => a + (b ?? 0), 0);
 
@@ -48,15 +50,15 @@ export function AdsTab({ user }: { user: UserDoc }) {
           { do: "Ad task: watch 20 ads in total", reward: "0.005 USDT" },
           { do: "Ad task: watch 50 ads in total", reward: "0.01 USDT" },
         ]}
-        note={`Daily goal ${REWARDS.dailyAdsGoal} ads. Each ad must be watched fully — rewards credit instantly.`}
+         note={`Daily goal ${settings.dailyAdsGoal} ads. Each ad must be watched fully — rewards credit instantly. Counters reset at 00:00:00 UTC.`}
       />
       <Card className="text-center">
         <SectionTitle icon="📺">Watch Ads</SectionTitle>
         <Num className="text-3xl text-gold">
-          {total}/{REWARDS.dailyAdsGoal}
+           {total}/{settings.dailyAdsGoal}
         </Num>
         <p className="mb-3 text-xs text-muted-foreground">ads watched today</p>
-        <Progress value={total} max={REWARDS.dailyAdsGoal} />
+         <Progress value={total} max={settings.dailyAdsGoal} />
         <p className="mt-2 text-[11px] text-muted-foreground">
           Total ads watched: <Num>{user.totalAds ?? 0}</Num>
         </p>
@@ -76,7 +78,7 @@ export function AdsTab({ user }: { user: UserDoc }) {
         }))}
       />
 
-      {AD_PROVIDERS.map((p) => {
+       {settings.adProviders.map((p) => {
         const seen = user.adsToday?.[p.id] ?? 0;
         const full = seen >= p.dailyLimit;
         return (

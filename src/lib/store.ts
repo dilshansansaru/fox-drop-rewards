@@ -193,6 +193,10 @@ export async function ensureUser(): Promise<UserDoc> {
 
 async function creditReferral(inviterId: string, invitee: UserDoc, ip: string) {
   const db = getDb();
+  const settingsSnap = await getDoc(doc(db, "app_config", "settings")).catch(() => null);
+  const liveSettings = settingsSnap?.data() as { referralTokens?: number; referralUsdt?: number } | undefined;
+  const referralTokens = liveSettings?.referralTokens ?? REWARDS.referralTokens;
+  const referralUsdt = liveSettings?.referralUsdt ?? REWARDS.referralUsdt;
   // Fraud guard: same IP already used by another account → block, keep history.
   const dupes = await getDocs(
     query(collection(db, "users"), where("ip", "==", ip), limit(5)),
@@ -218,8 +222,8 @@ async function creditReferral(inviterId: string, invitee: UserDoc, ip: string) {
       username: invitee.username,
       status,
       reason: suspicious ? "Duplicate IP detected" : "",
-      tokens: suspicious ? 0 : REWARDS.referralTokens,
-      usdt: suspicious ? 0 : REWARDS.referralUsdt,
+       tokens: suspicious ? 0 : referralTokens,
+       usdt: suspicious ? 0 : referralUsdt,
       ads: 0,
       dayIndex: 1,
       milestones: {},
@@ -228,8 +232,8 @@ async function creditReferral(inviterId: string, invitee: UserDoc, ip: string) {
     });
     if (!suspicious) {
       transaction.update(inviterRef, {
-        tokens: increment(REWARDS.referralTokens),
-        usdt: increment(REWARDS.referralUsdt),
+         tokens: increment(referralTokens),
+         usdt: increment(referralUsdt),
         refCount: increment(1),
       });
     }
@@ -240,8 +244,8 @@ async function creditReferral(inviterId: string, invitee: UserDoc, ip: string) {
 
   void callBot("referral-joined", {
     inviterId,
-    tokens: REWARDS.referralTokens,
-    usdt: REWARDS.referralUsdt,
+    tokens: referralTokens,
+    usdt: referralUsdt,
   });
 }
 
@@ -370,18 +374,18 @@ export async function completeTask(userId: string, taskId: string, tokens: numbe
   });
 }
 
-export async function claimSecurityBonus(userId: string) {
+export async function claimSecurityBonus(userId: string, reward = REWARDS.securityCheckTokens) {
   if (isLocalMode()) {
     localPatch((u) => ({
       ...u,
       securityChecked: true,
-      tokens: u.tokens + REWARDS.securityCheckTokens,
+      tokens: u.tokens + reward,
     }));
     return;
   }
   await updateDoc(userRef(userId), {
     securityChecked: true,
-    tokens: increment(REWARDS.securityCheckTokens),
+    tokens: increment(reward),
   });
 }
 
@@ -400,9 +404,14 @@ export async function claimDayBonus(userId: string, key: string, usdt: number) {
   });
 }
 
-export async function requestWithdraw(user: UserDoc, amount: number, address: string) {
+export async function requestWithdraw(
+  user: UserDoc,
+  amount: number,
+  address: string,
+  fee = REWARDS.withdrawFee,
+) {
   if (isLocalMode()) {
-    localPatch((u) => ({ ...u, usdt: u.usdt - (amount + REWARDS.withdrawFee) }));
+    localPatch((u) => ({ ...u, usdt: u.usdt - (amount + fee) }));
     void callBot("withdraw-request", {
       id: "offline",
       amount,
@@ -418,12 +427,12 @@ export async function requestWithdraw(user: UserDoc, amount: number, address: st
     name: user.name,
     username: user.username,
     amount,
-    fee: REWARDS.withdrawFee,
+    fee,
     address,
     status: "pending",
     createdAt: serverTimestamp(),
   });
-  await updateDoc(userRef(user.id), { usdt: increment(-(amount + REWARDS.withdrawFee)) });
+  await updateDoc(userRef(user.id), { usdt: increment(-(amount + fee)) });
   void callBot("withdraw-request", {
     id: ref.id,
     amount,

@@ -97,7 +97,7 @@ function Shell() {
         <SecurityCheck
           onDone={async () => {
             setChecked(true);
-            await claimSecurityBonus(user.id).catch(() => null);
+            await claimSecurityBonus(user.id, settings.securityCheckTokens).catch(() => null);
           }}
         />
       </main>

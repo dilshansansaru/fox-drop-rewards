@@ -52,11 +52,11 @@ export function HomeTab({ user }: { user: UserDoc }) {
           ...(settings.eligibilityEnabled
             ? [{ do: "Pass the eligibility check on first open", reward: `${settings.securityCheckTokens} FOX` }]
             : []),
-          { do: "Complete main tasks (join channel & group)", reward: `${REWARDS.mainTaskUsdt} USDT each` },
-          { do: `Watch up to ${REWARDS.dailyAdsGoal} ads every day`, reward: "10-100 FOX per ad + USDT ad tasks" },
-          { do: "Invite friends with your referral link", reward: `${REWARDS.referralTokens} FOX + ${REWARDS.referralUsdt} USDT each` },
+          { do: "Complete main tasks (join channel & group)", reward: `${settings.mainTaskUsdt} USDT each` },
+          { do: `Watch up to ${settings.dailyAdsGoal} ads every day`, reward: "10-100 FOX per ad + USDT ad tasks" },
+          { do: "Invite friends with your referral link", reward: `${settings.referralTokens} FOX + ${settings.referralUsdt} USDT each` },
           { do: "Friend watches 10 ads on day 1 / 15 ads on day 2", reward: "+0.005 USDT each milestone" },
-          { do: `Withdraw USDT from ${REWARDS.minWithdraw} USDT to BEP-20`, reward: `Paid within 24h (fee ${REWARDS.withdrawFee} USDT)` },
+          { do: `Withdraw USDT from ${settings.minWithdraw} USDT to BEP-20`, reward: `Paid within 24h (fee ${settings.withdrawFee} USDT)` },
         ]}
         note="FOX to USDT exchange unlocks in 2027 Q2. USDT rewards are withdrawable now."
       />
@@ -102,19 +102,19 @@ export function HomeTab({ user }: { user: UserDoc }) {
             <div className="mb-1 flex justify-between text-xs">
               <span>📺 Ads watched</span>
               <Num>
-                {adsToday}/{REWARDS.dailyAdsGoal}
+                {adsToday}/{settings.dailyAdsGoal}
               </Num>
             </div>
-            <Progress value={adsToday} max={REWARDS.dailyAdsGoal} />
+            <Progress value={adsToday} max={settings.dailyAdsGoal} />
           </div>
           <div>
             <div className="mb-1 flex justify-between text-xs">
               <span>👥 Referrals today goal</span>
               <Num>
-                {Math.min(user.refCount ?? 0, REWARDS.dailyReferGoal)}/{REWARDS.dailyReferGoal}
+                {Math.min(user.refCount ?? 0, settings.dailyReferGoal)}/{settings.dailyReferGoal}
               </Num>
             </div>
-            <Progress value={user.refCount ?? 0} max={REWARDS.dailyReferGoal} />
+            <Progress value={user.refCount ?? 0} max={settings.dailyReferGoal} />
           </div>
           <div>
             <div className="mb-1 flex justify-between text-xs">
@@ -155,7 +155,7 @@ export function HomeTab({ user }: { user: UserDoc }) {
             );
           })}
           <p className="text-xs text-muted-foreground">
-            ✅ Main task completion instantly rewards <Num>{REWARDS.mainTaskUsdt} USDT</Num>.
+            ✅ Main task completion instantly rewards <Num>{settings.mainTaskUsdt} USDT</Num>.
           </p>
         </div>
       </Card>
@@ -165,7 +165,7 @@ export function HomeTab({ user }: { user: UserDoc }) {
         <div className="space-y-2 text-sm">
           <div className="flex justify-between rounded-xl bg-surface-2 px-3 py-2">
             <span>Exchange rate</span>
-            <Num className="text-gold">1 FOX = $0.001</Num>
+            <Num className="text-gold">1 FOX = ${settings.tokenPriceUsd}</Num>
           </div>
           <div className="flex justify-between rounded-xl bg-surface-2 px-3 py-2">
             <span>Network</span>
