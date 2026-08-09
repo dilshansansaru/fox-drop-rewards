@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Btn, Card, Num, Progress, SectionTitle, useToast } from "@/components/ui-kit";
 import {
   AD_PROVIDERS,
@@ -26,8 +26,16 @@ import {
   type UserDoc,
   type Withdrawal,
 } from "@/lib/store";
+import {
+  saveAppSettings,
+  saveLiveTasks,
+  useAppSettings,
+  useLiveTasks,
+  type AppSettings,
+} from "@/lib/app-config";
+import type { Task } from "@/lib/config";
 
-type AdminTab = "overview" | "payouts" | "users" | "referrals" | "broadcast" | "system";
+type AdminTab = "overview" | "payouts" | "users" | "referrals" | "broadcast" | "tasks" | "system";
 
 const TABS: { id: AdminTab; label: string }[] = [
   { id: "overview", label: "📊 Stats" },
@@ -35,6 +43,7 @@ const TABS: { id: AdminTab; label: string }[] = [
   { id: "users", label: "👤 Users" },
   { id: "referrals", label: "👥 Referrals" },
   { id: "broadcast", label: "📢 Broadcast" },
+  { id: "tasks", label: "📋 Tasks" },
   { id: "system", label: "⚙️ System" },
 ];
 
@@ -52,6 +61,9 @@ export function AdminPanel() {
   const [txids, setTxids] = useState<Record<string, string>>({});
   const [search, setSearch] = useState("");
   const [message, setMessage] = useState("");
+  const [imageUrl, setImageUrl] = useState("");
+  const [buttonText, setButtonText] = useState("");
+  const [buttonUrl, setButtonUrl] = useState("");
   const [sending, setSending] = useState(false);
   const [payoutFilter, setPayoutFilter] = useState<"pending" | "approved" | "rejected" | "all">("pending");
 
@@ -59,6 +71,13 @@ export function AdminPanel() {
   const users = useAllUsers(true);
   const referrals = useAllReferrals(true);
   const toast = useToast();
+  const { settings } = useAppSettings();
+  const liveTasks = useLiveTasks();
+  const [draftSettings, setDraftSettings] = useState<AppSettings>(settings);
+  const [draftTasks, setDraftTasks] = useState<Task[]>(liveTasks);
+
+  useEffect(() => setDraftSettings(settings), [settings]);
+  useEffect(() => setDraftTasks(liveTasks), [liveTasks]);
 
   const stats = useMemo(() => {
     const pending = withdrawals.filter((w) => w.status === "pending");
@@ -164,7 +183,11 @@ export function AdminPanel() {
     }
     setSending(true);
     try {
-      const res = await adminBroadcast(targets.map((u) => u.id), text);
+      const res = await adminBroadcast(targets.map((u) => u.id), text, {
+        imageUrl: imageUrl.trim(),
+        buttonText: buttonText.trim(),
+        buttonUrl: buttonUrl.trim(),
+      });
       toast.push({
         kind: "success",
         title: `Sent to ${res.sent ?? 0} users`,
@@ -177,6 +200,38 @@ export function AdminPanel() {
       setSending(false);
     }
   };
+
+  const saveSettings = async () => {
+    try {
+      await saveAppSettings(draftSettings);
+      toast.push({ kind: "success", title: "Settings saved", desc: "All open apps update in real time." });
+    } catch {
+      toast.push({ kind: "error", title: "Settings save failed" });
+    }
+  };
+
+  const saveTasks = async () => {
+    try {
+      await saveLiveTasks(draftTasks);
+      toast.push({ kind: "success", title: "Tasks saved", desc: "Task Center updated in real time." });
+    } catch {
+      toast.push({ kind: "error", title: "Task save failed" });
+    }
+  };
+
+  const field = (key: keyof AppSettings, label: string, step = "0.001") => (
+    <label className="block text-xs text-muted-foreground">
+      {label}
+      <input
+        type="number"
+        min="0"
+        step={step}
+        value={String(draftSettings[key])}
+        onChange={(e) => setDraftSettings((s) => ({ ...s, [key]: Number(e.target.value) }))}
+        className="text-num mt-1 h-10 w-full rounded-lg border border-input bg-surface-2 px-3 text-foreground outline-none focus:border-primary"
+      />
+    </label>
+  );
 
   return (
     <div className="space-y-4">
@@ -464,6 +519,28 @@ export function AdminPanel() {
             placeholder="Announcement text (HTML supported: <b>bold</b>)"
             className="w-full rounded-xl border border-input bg-surface-2 p-3 text-xs outline-none focus:border-primary"
           />
+          <div className="mt-3 space-y-2">
+            <input
+              value={imageUrl}
+              onChange={(e) => setImageUrl(e.target.value)}
+              placeholder="Image URL (https://...) — optional"
+              className="h-10 w-full rounded-lg border border-input bg-surface-2 px-3 text-xs outline-none focus:border-primary"
+            />
+            <div className="grid grid-cols-2 gap-2">
+              <input
+                value={buttonText}
+                onChange={(e) => setButtonText(e.target.value)}
+                placeholder="Button label"
+                className="h-10 rounded-lg border border-input bg-surface-2 px-3 text-xs outline-none focus:border-primary"
+              />
+              <input
+                value={buttonUrl}
+                onChange={(e) => setButtonUrl(e.target.value)}
+                placeholder="https://..."
+                className="h-10 rounded-lg border border-input bg-surface-2 px-3 text-xs outline-none focus:border-primary"
+              />
+            </div>
+          </div>
           <p className="mt-2 text-[10px] text-muted-foreground">
             Sent through @Fox_Drop_Bot with Mini App buttons. Max 500 users per send.
           </p>
@@ -491,27 +568,60 @@ export function AdminPanel() {
         </Card>
       )}
 
+      {tab === "tasks" && (
+        <div className="space-y-3">
+          <Card>
+            <SectionTitle icon="📋">Task manager</SectionTitle>
+            <p className="text-xs text-muted-foreground">Add, edit or remove tasks. Save publishes them to every open Mini App in real time.</p>
+          </Card>
+          {draftTasks.map((task, index) => (
+            <Card key={`${task.id}-${index}`}>
+              <div className="grid grid-cols-2 gap-2">
+                <input value={task.title} onChange={(e) => setDraftTasks((items) => items.map((item, i) => i === index ? { ...item, title: e.target.value } : item))} placeholder="Task title" className="col-span-2 h-10 rounded-lg border border-input bg-surface-2 px-3 text-xs" />
+                <input value={task.id} onChange={(e) => setDraftTasks((items) => items.map((item, i) => i === index ? { ...item, id: e.target.value.replace(/[^a-z0-9-]/gi, "-").toLowerCase() } : item))} placeholder="task-id" className="h-10 rounded-lg border border-input bg-surface-2 px-3 text-xs" />
+                <input value={task.icon} onChange={(e) => setDraftTasks((items) => items.map((item, i) => i === index ? { ...item, icon: e.target.value } : item))} placeholder="Icon" className="h-10 rounded-lg border border-input bg-surface-2 px-3 text-xs" />
+                <select value={task.category} onChange={(e) => setDraftTasks((items) => items.map((item, i) => i === index ? { ...item, category: e.target.value as Task["category"] } : item))} className="h-10 rounded-lg border border-input bg-surface-2 px-2 text-xs">
+                  <option value="main">Main</option><option value="partner">Partner</option><option value="community">Community</option>
+                </select>
+                <select value={task.kind} onChange={(e) => setDraftTasks((items) => items.map((item, i) => i === index ? { ...item, kind: e.target.value as Task["kind"] } : item))} className="h-10 rounded-lg border border-input bg-surface-2 px-2 text-xs">
+                  <option value="telegram">Telegram</option><option value="miniapp">Mini app</option><option value="link">Link</option>
+                </select>
+                <input type="number" value={task.reward} onChange={(e) => setDraftTasks((items) => items.map((item, i) => i === index ? { ...item, reward: Number(e.target.value) } : item))} placeholder="FOX reward" className="text-num h-10 rounded-lg border border-input bg-surface-2 px-3 text-xs" />
+                <input type="number" step="0.0001" value={task.rewardUsdt ?? 0} onChange={(e) => setDraftTasks((items) => items.map((item, i) => i === index ? { ...item, rewardUsdt: Number(e.target.value) } : item))} placeholder="USDT reward" className="text-num h-10 rounded-lg border border-input bg-surface-2 px-3 text-xs" />
+                <input value={task.url} onChange={(e) => setDraftTasks((items) => items.map((item, i) => i === index ? { ...item, url: e.target.value } : item))} placeholder="Task URL" className="col-span-2 h-10 rounded-lg border border-input bg-surface-2 px-3 text-xs" />
+                {task.kind === "telegram" && <input value={task.chat ?? ""} onChange={(e) => setDraftTasks((items) => items.map((item, i) => i === index ? { ...item, chat: e.target.value } : item))} placeholder="@channel username" className="col-span-2 h-10 rounded-lg border border-input bg-surface-2 px-3 text-xs" />}
+              </div>
+              <Btn className="mt-2" size="sm" variant="danger" onClick={() => setDraftTasks((items) => items.filter((_, i) => i !== index))}>Remove</Btn>
+            </Card>
+          ))}
+          <div className="grid grid-cols-2 gap-2">
+            <Btn variant="outline" onClick={() => setDraftTasks((items) => [...items, { id: `task-${Date.now()}`, category: "main", title: "New Task", reward: 0, rewardUsdt: 0, icon: "🎯", kind: "link", url: "https://t.me/Fox_Drop_Bot/play" }])}>+ Add task</Btn>
+            <Btn onClick={saveTasks}>Save tasks</Btn>
+          </div>
+        </div>
+      )}
+
       {tab === "system" && (
         <>
           <Card>
             <SectionTitle icon="⚙️">Reward configuration</SectionTitle>
-            <div className="space-y-1.5 text-xs">
-              {[
-                ["Security check bonus", `${REWARDS.securityCheckTokens} FOX`],
-                ["Referral reward", `${REWARDS.referralTokens} FOX + ${REWARDS.referralUsdt} USDT`],
-                ["Main task reward", `${REWARDS.mainTaskUsdt} USDT`],
-                ["Daily ads goal", `${REWARDS.dailyAdsGoal} ads`],
-                ["Min withdraw", `${REWARDS.minWithdraw} USDT`],
-                ["Withdraw fee", `${REWARDS.withdrawFee} USDT`],
-                ["Token price", `1 FOX = $${TOKEN_PRICE_USD}`],
-                ["Network", NETWORK],
-              ].map(([k, v]) => (
-                <div key={k} className="flex justify-between rounded-lg bg-surface-2 px-3 py-2">
-                  <span className="text-muted-foreground">{k}</span>
-                  <Num className="text-gold">{v}</Num>
-                </div>
-              ))}
+            <div className="mb-4 flex items-center justify-between rounded-xl bg-surface-2 p-3">
+              <div><p className="text-sm">Eligibility check</p><p className="text-[10px] text-muted-foreground">Default OFF; applies live to first-time users.</p></div>
+              <Btn size="sm" variant={draftSettings.eligibilityEnabled ? "success" : "ghost"} onClick={() => setDraftSettings((s) => ({ ...s, eligibilityEnabled: !s.eligibilityEnabled }))}>{draftSettings.eligibilityEnabled ? "ON" : "OFF"}</Btn>
             </div>
+            <div className="grid grid-cols-2 gap-3">
+              {field("securityCheckTokens", "Eligibility bonus FOX", "1")}
+              {field("referralTokens", "Referral FOX", "1")}
+              {field("referralUsdt", "Referral USDT", "0.0001")}
+              {field("mainTaskUsdt", "Main task USDT", "0.0001")}
+              {field("dailyAdsGoal", "Daily ads goal", "1")}
+              {field("dailyReferGoal", "Daily referral goal", "1")}
+              {field("minWithdraw", "Minimum withdraw", "0.01")}
+              {field("withdrawFee", "Withdraw fee", "0.001")}
+              {field("tokenPriceUsd", "FOX price USD", "0.0001")}
+            </div>
+            <div className="mt-3 rounded-xl bg-surface-2 p-3 text-xs"><span className="text-muted-foreground">Daily reset</span><Num className="float-right text-success">00:00:00 UTC</Num></div>
+            <Btn className="mt-4" full onClick={saveSettings}>Save all settings</Btn>
           </Card>
 
           <Card>
@@ -541,7 +651,7 @@ export function AdminPanel() {
           <Card>
             <SectionTitle icon="📺">Ad providers</SectionTitle>
             <div className="space-y-2">
-              {AD_PROVIDERS.map((p) => {
+              {draftSettings.adProviders.map((p, index) => {
                 const watched = users.reduce((a, u) => a + (u.adsToday?.[p.id] ?? 0), 0);
                 return (
                   <div key={p.id} className="rounded-xl bg-surface-2 p-3">
@@ -559,10 +669,19 @@ export function AdminPanel() {
                     <p className="mt-1 text-[10px] text-muted-foreground">
                       <Num>{watched}</Num> ads watched today
                     </p>
+                    <div className="mt-2 grid grid-cols-2 gap-2">
+                      <label className="text-[10px] text-muted-foreground">FOX / ad
+                        <input type="number" min="0" value={p.reward} onChange={(e) => setDraftSettings((s) => ({ ...s, adProviders: s.adProviders.map((provider, i) => i === index ? { ...provider, reward: Number(e.target.value) } : provider) }))} className="text-num mt-1 h-9 w-full rounded-lg border border-input bg-background px-2 text-xs text-foreground" />
+                      </label>
+                      <label className="text-[10px] text-muted-foreground">Daily limit
+                        <input type="number" min="0" value={p.dailyLimit} onChange={(e) => setDraftSettings((s) => ({ ...s, adProviders: s.adProviders.map((provider, i) => i === index ? { ...provider, dailyLimit: Number(e.target.value) } : provider) }))} className="text-num mt-1 h-9 w-full rounded-lg border border-input bg-background px-2 text-xs text-foreground" />
+                      </label>
+                    </div>
                   </div>
                 );
               })}
             </div>
+            <Btn className="mt-3" full onClick={saveSettings}>Save provider settings</Btn>
           </Card>
         </>
       )}

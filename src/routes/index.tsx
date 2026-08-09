@@ -10,6 +10,7 @@ import { WithdrawTab } from "@/components/tabs/WithdrawTab";
 import { Num, ToastHost } from "@/components/ui-kit";
 import { ADMIN_TG_IDS } from "@/lib/config";
 import { initAnalytics } from "@/lib/firebase";
+import { useAppSettings } from "@/lib/app-config";
 
 import { claimSecurityBonus, useUser } from "@/lib/store";
 import { currentTgUser, initTelegram } from "@/lib/telegram";
@@ -68,6 +69,7 @@ function App() {
 function Shell() {
   const [tab, setTab] = useState<TabId>("home");
   const { user, loading } = useUser();
+  const { settings } = useAppSettings();
   const [checked, setChecked] = useState(false);
 
   useEffect(() => {
@@ -89,13 +91,13 @@ function Shell() {
     );
   }
 
-  if (!user.securityChecked && !checked) {
+  if (settings.eligibilityEnabled && !user.securityChecked && !checked) {
     return (
       <main>
         <SecurityCheck
           onDone={async () => {
             setChecked(true);
-            await claimSecurityBonus(user.id).catch(() => null);
+            await claimSecurityBonus(user.id, settings.securityCheckTokens).catch(() => null);
           }}
         />
       </main>

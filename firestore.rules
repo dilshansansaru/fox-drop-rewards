@@ -15,5 +15,12 @@ service cloud.firestore {
       allow read, create, update: if true;
       allow delete: if false;
     }
+    // Runtime settings and task lists. The Mini App listens to these documents in real time.
+    // NOTE: Telegram Mini Apps do not create a Firebase Auth session, so these temporary
+    // launch rules cannot securely distinguish an admin from a user. Move admin writes to
+    // a trusted server using Firebase Admin before handling production funds.
+    match /app_config/{docId} {
+      allow read, write: if true;
+    }
   }
 }

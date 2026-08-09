@@ -4,6 +4,7 @@ import { REWARDS, TASKS, type Task, type TaskCategory } from "@/lib/config";
 import { completeTask, verifyTelegramMembership, type UserDoc } from "@/lib/store";
 import { openLink } from "@/lib/telegram";
 import { GuideBox } from "@/components/GuideBox";
+import { useLiveTasks } from "@/lib/app-config";
 
 const CATEGORIES: { id: TaskCategory; label: string; icon: string }[] = [
   { id: "main", label: "Main", icon: "⭐" },
@@ -16,6 +17,7 @@ export function TasksTab({ user }: { user: UserDoc }) {
   const [busy, setBusy] = useState<string | null>(null);
   const [opened, setOpened] = useState<Record<string, number>>({});
   const toast = useToast();
+  const tasks = useLiveTasks();
 
   const handle = async (task: Task) => {
     if (user.tasks?.[task.id]) return;
@@ -71,8 +73,8 @@ export function TasksTab({ user }: { user: UserDoc }) {
     toast.push({ kind: "info", title: "Task in progress", desc: "Reward is credited automatically." });
   };
 
-  const list = TASKS.filter((t) => t.category === cat);
-  const done = TASKS.filter((t) => user.tasks?.[t.id]).length;
+  const list = tasks.filter((t) => t.category === cat);
+  const done = tasks.filter((t) => user.tasks?.[t.id]).length;
 
   return (
     <div className="space-y-4">
@@ -92,7 +94,7 @@ export function TasksTab({ user }: { user: UserDoc }) {
       <Card className="text-center">
         <SectionTitle icon="📋">Task Center</SectionTitle>
         <Num className="text-3xl text-gold">
-          {done}/{TASKS.length}
+          {done}/{tasks.length}
         </Num>
         <p className="text-xs text-muted-foreground">tasks completed</p>
       </Card>

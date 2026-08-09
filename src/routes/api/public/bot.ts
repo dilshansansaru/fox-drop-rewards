@@ -8,6 +8,7 @@ import {
   notifyAdmins,
   paymentChannelId,
   sendMessage,
+  sendPhoto,
   verifyInitData,
 } from "@/lib/bot.server";
 import { BRAND } from "@/lib/config";
@@ -141,13 +142,24 @@ export const Route = createFileRoute("/api/public/bot")({
                 return Response.json({ error: "Forbidden" }, { status: 403 });
               }
               const text = String(p["text"] ?? "");
+              const imageUrl = String(p["imageUrl"] ?? "").trim();
+              const buttonText = String(p["buttonText"] ?? "").trim();
+              const buttonUrl = String(p["buttonUrl"] ?? "").trim();
               const raw = payload["ids"];
               const ids = Array.isArray(raw) ? raw.map(String).filter(Boolean).slice(0, 500) : [];
               if (!text || !ids.length) {
                 return Response.json({ error: "text and ids are required" }, { status: 400 });
               }
+              const buttons = mainButtons(
+                buttonText && /^https:\/\//.test(buttonUrl) ? [{ text: buttonText, url: buttonUrl }] : [],
+              );
+              const caption = `📢 <b>FOXDROP ANNOUNCEMENT</b>\n\n${text}`;
               const results = await Promise.allSettled(
-                ids.map((id) => sendMessage(id, `📢 <b>FOXDROP ANNOUNCEMENT</b>\n\n${text}`, mainButtons())),
+                ids.map((id) =>
+                  imageUrl && /^https:\/\//.test(imageUrl)
+                    ? sendPhoto(id, imageUrl, caption, buttons)
+                    : sendMessage(id, caption, buttons),
+                ),
               );
               const sent = results.filter((r) => r.status === "fulfilled").length;
               return Response.json({ ok: true, sent, failed: results.length - sent });

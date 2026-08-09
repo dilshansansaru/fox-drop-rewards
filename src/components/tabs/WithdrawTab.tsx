@@ -5,9 +5,11 @@ import { requestWithdraw, useWithdrawals, type UserDoc } from "@/lib/store";
 import { openLink } from "@/lib/telegram";
 import { BRAND } from "@/lib/config";
 import { GuideBox } from "@/components/GuideBox";
+import { useAppSettings } from "@/lib/app-config";
 
 export function WithdrawTab({ user }: { user: UserDoc }) {
-  const [amount, setAmount] = useState(String(REWARDS.minWithdraw));
+  const { settings } = useAppSettings();
+  const [amount, setAmount] = useState("");
   const [address, setAddress] = useState("");
   const [busy, setBusy] = useState(false);
   const toast = useToast();
@@ -19,9 +21,9 @@ export function WithdrawTab({ user }: { user: UserDoc }) {
 
   const requirements = [
     { label: `Complete all ${mainTasksTotal} main tasks`, ok: mainTasksDone >= mainTasksTotal },
-    { label: `Invite ${REWARDS.dailyReferGoal} friends`, ok: (user.refCount ?? 0) >= REWARDS.dailyReferGoal },
-    { label: `Watch ${REWARDS.dailyAdsGoal} ads today`, ok: adsToday >= REWARDS.dailyAdsGoal },
-    { label: `Balance of at least ${REWARDS.minWithdraw} USDT`, ok: user.usdt >= REWARDS.minWithdraw },
+    { label: `Invite ${settings.dailyReferGoal} friends`, ok: (user.refCount ?? 0) >= settings.dailyReferGoal },
+    { label: `Watch ${settings.dailyAdsGoal} ads today`, ok: adsToday >= settings.dailyAdsGoal },
+    { label: `Balance of at least ${settings.minWithdraw} USDT`, ok: user.usdt >= settings.minWithdraw },
   ];
   const eligible = requirements.every((r) => r.ok);
 
@@ -31,11 +33,11 @@ export function WithdrawTab({ user }: { user: UserDoc }) {
       toast.push({ kind: "error", title: "Requirements not met", desc: "Finish all requirements first." });
       return;
     }
-    if (!Number.isFinite(amt) || amt < REWARDS.minWithdraw) {
-      toast.push({ kind: "error", title: "Amount too low", desc: `Minimum is ${REWARDS.minWithdraw} USDT.` });
+    if (!Number.isFinite(amt) || amt < settings.minWithdraw) {
+      toast.push({ kind: "error", title: "Amount too low", desc: `Minimum is ${settings.minWithdraw} USDT.` });
       return;
     }
-    if (amt + REWARDS.withdrawFee > user.usdt) {
+    if (amt + settings.withdrawFee > user.usdt) {
       toast.push({ kind: "error", title: "Insufficient balance", desc: "Fee included in total." });
       return;
     }
@@ -45,7 +47,7 @@ export function WithdrawTab({ user }: { user: UserDoc }) {
     }
     setBusy(true);
     try {
-      await requestWithdraw(user, amt, address.trim());
+      await requestWithdraw(user, amt, address.trim(), settings.withdrawFee);
       toast.push({
         kind: "success",
         title: "Withdraw request sent!",
@@ -66,11 +68,11 @@ export function WithdrawTab({ user }: { user: UserDoc }) {
         title="Withdraw Guide"
         steps={[
           { do: "Complete all main tasks", reward: `FOX + ${REWARDS.mainTaskUsdt} USDT each` },
-          { do: `Invite ${REWARDS.dailyReferGoal} friends`, reward: `${REWARDS.referralUsdt} USDT + ${REWARDS.referralTokens} FOX each` },
-          { do: `Watch ${REWARDS.dailyAdsGoal} ads today`, reward: "up to 100 FOX per ad" },
+           { do: `Invite ${settings.dailyReferGoal} friends`, reward: `${settings.referralUsdt} USDT + ${settings.referralTokens} FOX each` },
+           { do: `Watch ${settings.dailyAdsGoal} ads today`, reward: "up to 100 FOX per ad" },
           { do: "Claim ad tasks (10 / 20 / 50 ads) and referral tasks (5 / 10 / 25 / 75 friends)", reward: "0.002–0.1 USDT each" },
-          { do: `Build your USDT balance up to ${REWARDS.minWithdraw}`, reward: "Withdraw unlocks" },
-          { do: "Enter your BEP-20 address and request a withdrawal", reward: `Paid in 24h (fee ${REWARDS.withdrawFee} USDT)` },
+           { do: `Build your USDT balance up to ${settings.minWithdraw}`, reward: "Withdraw unlocks" },
+           { do: "Enter your BEP-20 address and request a withdrawal", reward: `Paid in 24h (fee ${settings.withdrawFee} USDT)` },
         ]}
         note={`FOX → USDT exchange (1 FOX = $${TOKEN_PRICE_USD}) opens in 2027 Q2 on ${NETWORK}.`}
       />
@@ -121,11 +123,11 @@ export function WithdrawTab({ user }: { user: UserDoc }) {
         <div className="mt-3 space-y-1 rounded-xl bg-surface-2 p-3 text-xs">
           <div className="flex justify-between">
             <span className="text-muted-foreground">Minimum</span>
-            <Num>{REWARDS.minWithdraw} USDT</Num>
+             <Num>{settings.minWithdraw} USDT</Num>
           </div>
           <div className="flex justify-between">
             <span className="text-muted-foreground">Fee</span>
-            <Num className="text-destructive">{REWARDS.withdrawFee} USDT</Num>
+             <Num className="text-destructive">{settings.withdrawFee} USDT</Num>
           </div>
           <div className="flex justify-between">
             <span className="text-muted-foreground">You receive</span>

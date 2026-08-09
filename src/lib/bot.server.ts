@@ -85,6 +85,23 @@ export async function sendPhotoOrText(
   return sendMessage(chatId, caption, buttons);
 }
 
+export async function sendPhoto(
+  chatId: string | number,
+  photo: string,
+  caption: string,
+  buttons?: unknown,
+) {
+  const response = await call("sendPhoto", {
+    chat_id: chatId,
+    photo,
+    caption,
+    parse_mode: "HTML",
+    ...(buttons ? { reply_markup: buttons } : {}),
+  });
+  if (!response.ok) throw new Error(response.description ?? "Telegram could not deliver the photo");
+  return response;
+}
+
 export async function getChatMember(chat: string, userId: number) {
   const r = (await call("getChatMember", { chat_id: chat, user_id: userId })) as {
     ok: boolean;
