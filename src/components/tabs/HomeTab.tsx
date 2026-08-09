@@ -5,10 +5,12 @@ import { GuideBox } from "@/components/GuideBox";
 import { ALLOCATION, NETWORK, REWARDS, ROADMAP, TASKS, TOKEN_PRICE_USD } from "@/lib/config";
 import { claimDayBonus, type UserDoc } from "@/lib/store";
 import { useToast } from "@/components/ui-kit";
+import { useAppSettings } from "@/lib/app-config";
 
 export function HomeTab({ user }: { user: UserDoc }) {
   const [guide, setGuide] = useState(false);
   const toast = useToast();
+  const { settings } = useAppSettings();
 
   const adsToday = Object.values(user.adsToday ?? {}).reduce((a, b) => a + (b ?? 0), 0);
   const tasksDone = TASKS.filter((t) => user.tasks?.[t.id]).length;
@@ -47,7 +49,9 @@ export function HomeTab({ user }: { user: UserDoc }) {
         title="How FOXDROP works"
         defaultOpen
         steps={[
-          { do: "Pass the security check on first open", reward: `${REWARDS.securityCheckTokens} FOX` },
+          ...(settings.eligibilityEnabled
+            ? [{ do: "Pass the eligibility check on first open", reward: `${settings.securityCheckTokens} FOX` }]
+            : []),
           { do: "Complete main tasks (join channel & group)", reward: `${REWARDS.mainTaskUsdt} USDT each` },
           { do: `Watch up to ${REWARDS.dailyAdsGoal} ads every day`, reward: "10-100 FOX per ad + USDT ad tasks" },
           { do: "Invite friends with your referral link", reward: `${REWARDS.referralTokens} FOX + ${REWARDS.referralUsdt} USDT each` },
@@ -213,7 +217,7 @@ export function HomeTab({ user }: { user: UserDoc }) {
       <Sheet open={guide} onClose={closeGuide} title="📖 FOXDROP Guide">
         <ol className="space-y-3 text-sm">
           {[
-            "Pass the security check and claim your welcome FOX.",
+            ...(settings.eligibilityEnabled ? ["Pass the eligibility check and claim your welcome FOX."] : []),
             `Complete Main, Partner and Community tasks — main tasks pay ${REWARDS.mainTaskUsdt} USDT.`,
             `Watch up to ${REWARDS.dailyAdsGoal} ads daily across Adsgram, Monetag, GigaPub and Tower Ads.`,
             `Invite friends: ${REWARDS.referralTokens} FOX + ${REWARDS.referralUsdt} USDT instantly per verified friend.`,

@@ -10,6 +10,7 @@ import { WithdrawTab } from "@/components/tabs/WithdrawTab";
 import { Num, ToastHost } from "@/components/ui-kit";
 import { ADMIN_TG_IDS } from "@/lib/config";
 import { initAnalytics } from "@/lib/firebase";
+import { useAppSettings } from "@/lib/app-config";
 
 import { claimSecurityBonus, useUser } from "@/lib/store";
 import { currentTgUser, initTelegram } from "@/lib/telegram";
@@ -68,6 +69,7 @@ function App() {
 function Shell() {
   const [tab, setTab] = useState<TabId>("home");
   const { user, loading } = useUser();
+  const { settings, loading: settingsLoading } = useAppSettings();
   const [checked, setChecked] = useState(false);
 
   useEffect(() => {
@@ -78,7 +80,7 @@ function Shell() {
   const isAdmin = adminIds().includes(String(currentTgUser().id));
   const tabs = isAdmin ? [...TABS, { id: "admin" as TabId, label: "Admin", icon: "🛠️" }] : TABS;
 
-  if (loading || !user) {
+  if (loading || settingsLoading || !user) {
     return (
       <main className="bg-hero-glow flex min-h-screen flex-col items-center justify-center gap-3">
         <div className="animate-glow text-logo text-5xl text-primary">FOXDROP</div>
@@ -89,7 +91,7 @@ function Shell() {
     );
   }
 
-  if (!user.securityChecked && !checked) {
+  if (settings.eligibilityEnabled && !user.securityChecked && !checked) {
     return (
       <main>
         <SecurityCheck
