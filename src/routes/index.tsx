@@ -69,7 +69,7 @@ function App() {
 function Shell() {
   const [tab, setTab] = useState<TabId>("home");
   const { user, loading } = useUser();
-  const { settings, loading: settingsLoading } = useAppSettings();
+  const { settings } = useAppSettings();
   const [checked, setChecked] = useState(false);
 
   useEffect(() => {
@@ -80,7 +80,7 @@ function Shell() {
   const isAdmin = adminIds().includes(String(currentTgUser().id));
   const tabs = isAdmin ? [...TABS, { id: "admin" as TabId, label: "Admin", icon: "🛠️" }] : TABS;
 
-  if (loading || settingsLoading || !user) {
+  if (loading || !user) {
     return (
       <main className="bg-hero-glow flex min-h-screen flex-col items-center justify-center gap-3">
         <div className="animate-glow text-logo text-5xl text-primary">FOXDROP</div>

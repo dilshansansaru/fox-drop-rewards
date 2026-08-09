@@ -35,7 +35,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
 
 export function useAppSettings() {
   const [settings, setSettings] = useState(DEFAULT_SETTINGS);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   useEffect(
     () =>
       onSnapshot(
