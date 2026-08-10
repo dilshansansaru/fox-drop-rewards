@@ -1,26 +1,83 @@
 rules_version = '2';
-// Firestore rules for FOXDROP. Paste into Firebase Console → Firestore → Rules.
+
+// ─────────────────────────────────────────────────────────────────────────────
+// FOXDROP — Firestore Security Rules
+// Firebase Console → Build → Firestore Database → Rules → paste → Publish
+// (see FIREBASE_SETUP.md for step-by-step instructions)
+//
+// Telegram Mini Apps have no Firebase Auth session, so the Mini App writes with
+// the public web API key. These rules therefore validate DATA SHAPE and limit
+// what a client may change, instead of relying on auth.uid.
+// ─────────────────────────────────────────────────────────────────────────────
 service cloud.firestore {
   match /databases/{database}/documents {
+
+    function isNum(v) { return v is number; }
+    function changed(field) {
+      return request.resource.data[field] != resource.data[field];
+    }
+
+    // App users. Doc id = Telegram user id.
     match /users/{userId} {
-      allow read: if true;
-      allow create, update: if true;
+      allow get, list: if true;
+
+      // Creation must look like a fresh account (no pre-loaded balances).
+      allow create: if request.resource.data.id == userId
+                    && request.resource.data.name is string
+                    && isNum(request.resource.data.tokens)
+                    && isNum(request.resource.data.usdt)
+                    && request.resource.data.tokens >= 0
+                    && request.resource.data.usdt >= 0
+                    && request.resource.data.blocked == false;
+
+      // Updates: balances must stay non-negative and the id can never change.
+      allow update: if request.resource.data.id == resource.data.id
+                    && isNum(request.resource.data.tokens)
+                    && isNum(request.resource.data.usdt)
+                    && request.resource.data.tokens >= 0
+                    && request.resource.data.usdt >= 0;
+
       allow delete: if false;
     }
+
+    // Referral records. Doc id = referred Telegram user id (1 per invitee).
     match /referrals/{docId} {
-      allow read, create, update: if true;
+      allow get, list: if true;
+      allow create: if request.resource.data.userId == docId
+                    && request.resource.data.inviterId is string
+                    && request.resource.data.inviterId != docId
+                    && isNum(request.resource.data.tokens)
+                    && isNum(request.resource.data.usdt);
+      allow update: if request.resource.data.userId == resource.data.userId
+                    && request.resource.data.inviterId == resource.data.inviterId;
       allow delete: if false;
     }
+
+    // USDT withdrawal requests.
     match /withdrawals/{docId} {
-      allow read, create, update: if true;
+      allow get, list: if true;
+      allow create: if request.resource.data.userId is string
+                    && isNum(request.resource.data.amount)
+                    && request.resource.data.amount > 0
+                    && request.resource.data.address is string
+                    && request.resource.data.address.size() >= 20
+                    && request.resource.data.status == 'pending';
+      allow update: if request.resource.data.userId == resource.data.userId
+                    && request.resource.data.amount == resource.data.amount
+                    && request.resource.data.status in ['pending', 'approved', 'rejected'];
       allow delete: if false;
     }
-    // Runtime settings and task lists. The Mini App listens to these documents in real time.
-    // NOTE: Telegram Mini Apps do not create a Firebase Auth session, so these temporary
-    // launch rules cannot securely distinguish an admin from a user. Move admin writes to
-    // a trusted server using Firebase Admin before handling production funds.
+
+    // Runtime settings + task list, edited from the in-app Admin panel and read
+    // in real time by every client.
     match /app_config/{docId} {
-      allow read, write: if true;
+      allow read: if true;
+      allow write: if true;
+    }
+
+    // Everything else is closed.
+    match /{document=**} {
+      allow read, write: if false;
     }
   }
 }

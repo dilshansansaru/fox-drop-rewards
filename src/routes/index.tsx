@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { AdminPanel } from "@/components/AdminPanel";
 import { SecurityCheck } from "@/components/SecurityCheck";
@@ -68,7 +68,7 @@ function App() {
 
 function Shell() {
   const [tab, setTab] = useState<TabId>("home");
-  const { user, loading } = useUser();
+  const { user, loading, error } = useUser();
   const { settings } = useAppSettings();
   const [checked, setChecked] = useState(false);
 
@@ -80,7 +80,7 @@ function Shell() {
   const isAdmin = adminIds().includes(String(currentTgUser().id));
   const tabs = isAdmin ? [...TABS, { id: "admin" as TabId, label: "Admin", icon: "🛠️" }] : TABS;
 
-  if (loading || !user) {
+  if (loading) {
     return (
       <main className="bg-hero-glow flex min-h-screen flex-col items-center justify-center gap-3">
         <div className="animate-glow text-logo text-5xl text-primary">FOXDROP</div>
@@ -90,6 +90,27 @@ function Shell() {
       </main>
     );
   }
+
+  if (!user) {
+    return (
+      <main className="bg-hero-glow flex min-h-screen flex-col items-center justify-center gap-3 px-6 text-center">
+        <div className="text-logo text-4xl text-primary">FOXDROP</div>
+        <p className="text-btn text-sm text-destructive">Connection failed</p>
+        <p className="text-xs leading-relaxed text-muted-foreground">
+          We could not reach the FOXDROP database. Check your internet connection and reopen the mini
+          app.
+        </p>
+        {error && <p className="text-[10px] text-muted-foreground/70">{error}</p>}
+        <button
+          onClick={() => window.location.reload()}
+          className="text-btn mt-2 rounded-xl bg-primary px-5 py-2 text-xs uppercase text-primary-foreground"
+        >
+          Retry
+        </button>
+      </main>
+    );
+  }
+
 
   if (settings.eligibilityEnabled && !user.securityChecked && !checked) {
     return (
@@ -127,6 +148,15 @@ function Shell() {
         {tab === "wallet" && <WithdrawTab user={user} />}
         {tab === "admin" && isAdmin && <AdminPanel />}
       </div>
+
+      <footer className="mt-6 text-center text-[10px] leading-relaxed text-muted-foreground/80">
+        <p>FOX are in-app reward points. No earnings are guaranteed.</p>
+        <Link to="/terms" className="text-gold underline">
+          Terms of Use &amp; Privacy Policy
+        </Link>
+      </footer>
+
+
 
       <nav className="fixed inset-x-0 bottom-0 z-50 border-t border-border bg-background/95 backdrop-blur-lg">
         <div className="mx-auto flex max-w-md items-stretch">

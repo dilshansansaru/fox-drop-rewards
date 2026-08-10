@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Btn, Card, Num, Progress, SectionTitle, useToast } from "@/components/ui-kit";
 import { AD_TASK_MILESTONES, type AdProviderId } from "@/lib/config";
-import { showAd } from "@/lib/ads";
+import { showAd, type AdError } from "@/lib/ads";
 import { awardAd, type UserDoc } from "@/lib/store";
 import { GuideBox } from "@/components/GuideBox";
 import { MilestoneList } from "@/components/MilestoneList";
@@ -22,15 +22,28 @@ export function AdsTab({ user }: { user: UserDoc }) {
     }
     setBusy(id);
     try {
-      const mode = await showAd(id);
+      await showAd(id);
       await awardAd(user, id, reward);
       toast.push({
         kind: "success",
         title: `+${reward} FOX earned!`,
-        desc: mode === "fallback" ? "Ad view completed" : "Sponsored ad completed",
+        desc: "Sponsored ad watched fully",
       });
-    } catch {
-      toast.push({ kind: "error", title: "Ad not completed", desc: "Reward was not credited." });
+    } catch (e) {
+      const err = e as AdError;
+      toast.push({
+        kind: "error",
+        title:
+          err?.code === "cooldown"
+            ? "Please wait a moment"
+            : err?.code === "not-configured"
+              ? "Ad network not available"
+              : "No ad available right now",
+        desc:
+          err?.code === "cooldown"
+            ? err.message
+            : "No reward was credited. Please try again later.",
+      });
     } finally {
       setBusy(null);
     }
@@ -62,7 +75,13 @@ export function AdsTab({ user }: { user: UserDoc }) {
         <p className="mt-2 text-[11px] text-muted-foreground">
           Total ads watched: <Num>{user.totalAds ?? 0}</Num>
         </p>
+        <p className="mt-2 text-[10px] leading-relaxed text-muted-foreground">
+          Ads are shown only when you tap Watch. One ad at a time, with a short cooldown between
+          views. FOX are in-app reward points — nothing is auto-played and no reward is given for an
+          ad that is not fully watched.
+        </p>
       </Card>
+
 
       <MilestoneList
         user={user}

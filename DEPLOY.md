@@ -51,3 +51,7 @@ the Telegram secret token and initData HMAC verification.
 
 Everything (ad rewards, limits, tasks, USDT milestones, allocation, roadmap) lives in
 `src/lib/config.ts`.
+
+## 6. Firestore rules
+
+App එක online-only. `firestore.rules` deploy කරන පියවර → **FIREBASE_SETUP.md** බලන්න.
