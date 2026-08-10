@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { AdminPanel } from "@/components/AdminPanel";
 import { SecurityCheck } from "@/components/SecurityCheck";
@@ -148,6 +148,15 @@ function Shell() {
         {tab === "wallet" && <WithdrawTab user={user} />}
         {tab === "admin" && isAdmin && <AdminPanel />}
       </div>
+
+      <footer className="mt-6 text-center text-[10px] leading-relaxed text-muted-foreground/80">
+        <p>FOX are in-app reward points. No earnings are guaranteed.</p>
+        <Link to="/terms" className="text-gold underline">
+          Terms of Use &amp; Privacy Policy
+        </Link>
+      </footer>
+
+
 
       <nav className="fixed inset-x-0 bottom-0 z-50 border-t border-border bg-background/95 backdrop-blur-lg">
         <div className="mx-auto flex max-w-md items-stretch">
