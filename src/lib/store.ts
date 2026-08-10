@@ -20,7 +20,7 @@ import { useEffect, useState } from "react";
 import { getDb } from "./firebase";
 import { REFERRAL_MILESTONES, REWARDS, type AdProviderId } from "./config";
 import { currentTgUser, startParam, tg } from "./telegram";
-import { localGet, localPatch, localSubscribe } from "./local";
+
 
 export type ReferralStatus = "pending" | "verified" | "credited" | "blocked";
 
@@ -130,8 +130,8 @@ export async function verifyTelegramMembership(chat: string, userId: string) {
   }
 }
 
-let localMode = false;
-export const isLocalMode = () => localMode;
+/** The app is online-only: every read/write goes straight to Firestore. */
+export const isLocalMode = () => false;
 
 /** Creates the user document on first open and handles referral crediting + IP fraud checks. */
 export async function ensureUser(): Promise<UserDoc> {
@@ -189,9 +189,8 @@ export async function ensureUser(): Promise<UserDoc> {
     }
     return fresh;
   } catch (e) {
-    console.warn("Firestore unavailable — using offline mode", e);
-    localMode = true;
-    return localGet(fresh);
+    console.error("Firestore unavailable", e);
+    throw e instanceof Error ? e : new Error("Firestore unavailable");
   }
 }
 
@@ -257,6 +256,7 @@ async function creditReferral(inviterId: string, invitee: UserDoc, ip: string) {
 export function useUser() {
   const [user, setUser] = useState<UserDoc | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     let unsub = () => {};
@@ -264,18 +264,15 @@ export function useUser() {
       try {
         const u = await ensureUser();
         setUser(u);
-        if (isLocalMode()) {
-          const off = localSubscribe(setUser);
-          unsub = () => {
-            off();
-          };
-        } else {
-          unsub = onSnapshot(userRef(u.id), (snap) => {
+        unsub = onSnapshot(
+          userRef(u.id),
+          (snap) => {
             if (snap.exists()) setUser({ ...(snap.data() as UserDoc), id: u.id });
-          });
-        }
+          },
+          (e) => setError(e.message),
+        );
       } catch (e) {
-        console.error("ensureUser failed", e);
+        setError(e instanceof Error ? e.message : "Database connection failed");
       } finally {
         setLoading(false);
       }
@@ -283,7 +280,7 @@ export function useUser() {
     return () => unsub();
   }, []);
 
-  return { user, loading };
+  return { user, loading, error };
 }
 
 /**
@@ -291,7 +288,7 @@ export function useUser() {
  * (day 1 → 10 ads, day 2 → 15 ads). Runs live on every ad view.
  */
 async function creditReferralMilestones(user: UserDoc, adsToday: number) {
-  if (!user.referredBy || isLocalMode()) return;
+  if (!user.referredBy) return;
   const inviterId = user.referredBy;
   const day = user.dayIndex ?? 1;
   const m = REFERRAL_MILESTONES.find(
@@ -334,16 +331,6 @@ export async function awardAd(user: UserDoc, provider: AdProviderId, reward: num
   const isNewUtcDay = user.adsDate !== currentDate;
   const currentAds = isNewUtcDay ? {} : user.adsToday ?? {};
   const adsToday = Object.values(currentAds).reduce((a, b) => a + (b ?? 0), 0) + 1;
-  if (isLocalMode()) {
-    localPatch((u) => ({
-      ...u,
-      tokens: u.tokens + reward,
-      totalAds: (u.totalAds ?? 0) + 1,
-      adsDate: today(),
-      adsToday: { ...currentAds, [provider]: (currentAds[provider] ?? 0) + 1 },
-    }));
-    return;
-  }
   await runTransaction(getDb(), async (transaction) => {
     const ref = userRef(user.id);
     const snapshot = await transaction.get(ref);
@@ -363,15 +350,6 @@ export async function awardAd(user: UserDoc, provider: AdProviderId, reward: num
 }
 
 export async function completeTask(userId: string, taskId: string, tokens: number, usdt = 0) {
-  if (isLocalMode()) {
-    localPatch((u) => ({
-      ...u,
-      tokens: u.tokens + tokens,
-      usdt: u.usdt + usdt,
-      tasks: { ...u.tasks, [taskId]: true },
-    }));
-    return;
-  }
   await updateDoc(userRef(userId), {
     [`tasks.${taskId}`]: true,
     tokens: increment(tokens),
@@ -380,14 +358,6 @@ export async function completeTask(userId: string, taskId: string, tokens: numbe
 }
 
 export async function claimSecurityBonus(userId: string, reward = REWARDS.securityCheckTokens) {
-  if (isLocalMode()) {
-    localPatch((u) => ({
-      ...u,
-      securityChecked: true,
-      tokens: u.tokens + reward,
-    }));
-    return;
-  }
   await updateDoc(userRef(userId), {
     securityChecked: true,
     tokens: increment(reward),
@@ -395,14 +365,6 @@ export async function claimSecurityBonus(userId: string, reward = REWARDS.securi
 }
 
 export async function claimDayBonus(userId: string, key: string, usdt: number) {
-  if (isLocalMode()) {
-    localPatch((u) => ({
-      ...u,
-      usdt: u.usdt + usdt,
-      dayBonusClaimed: { ...u.dayBonusClaimed, [key]: true },
-    }));
-    return;
-  }
   await updateDoc(userRef(userId), {
     [`dayBonusClaimed.${key}`]: true,
     usdt: increment(usdt),
@@ -415,17 +377,6 @@ export async function requestWithdraw(
   address: string,
   fee = REWARDS.withdrawFee,
 ) {
-  if (isLocalMode()) {
-    localPatch((u) => ({ ...u, usdt: u.usdt - (amount + fee) }));
-    void callBot("withdraw-request", {
-      id: "offline",
-      amount,
-      address,
-      name: user.name,
-      username: user.username,
-    });
-    return "offline";
-  }
   const db = getDb();
   const ref = await addDoc(collection(db, "withdrawals"), {
     userId: user.id,
