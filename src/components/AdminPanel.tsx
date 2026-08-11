@@ -94,6 +94,7 @@ export function AdminPanel() {
   const promoCodes = usePromoCodes();
   const visitSites = useVisitSites();
   const [newCode, setNewCode] = useState<PromoCode>({ id: "", tokens: 100, usdt: 0, maxUses: 0, uses: 0, active: true });
+  const [siteDrafts, setSiteDrafts] = useState<Record<string, VisitSite>>({});
   const [newSite, setNewSite] = useState<VisitSite>({ id: "", title: "", url: "", tokens: 50, usdt: 0, seconds: 10, active: true });
   const liveTasks = useLiveTasks();
   const [draftSettings, setDraftSettings] = useState<AppSettings>(settings);
@@ -721,30 +722,36 @@ export function AdminPanel() {
             </div>
             <Btn className="mt-3" full onClick={() => saveSite(newSite)}>+ Add website</Btn>
           </Card>
-          {visitSites.map((s2, index) => (
-            <Card key={s2.id}>
+          {visitSites.map((live, index) => {
+            const s2 = siteDrafts[live.id] ?? live;
+            const edit = (patch: Partial<VisitSite>) =>
+              setSiteDrafts((d) => ({ ...d, [live.id]: { ...s2, ...patch } }));
+            return (
+            <Card key={live.id}>
               <p className="text-btn text-sm">Website {index + 1}</p>
               <div className="mt-2 grid grid-cols-2 gap-2">
-                <input value={s2.title} onChange={(e) => saveSite({ ...s2, title: e.target.value })} className="col-span-2 h-10 rounded-lg border border-input bg-surface-2 px-3 text-xs" />
-                <input value={s2.url} onChange={(e) => saveSite({ ...s2, url: e.target.value })} className="col-span-2 h-10 rounded-lg border border-input bg-surface-2 px-3 text-xs" />
+                <input value={s2.title} onChange={(e) => edit({ title: e.target.value })} className="col-span-2 h-10 rounded-lg border border-input bg-surface-2 px-3 text-xs" />
+                <input value={s2.url} onChange={(e) => edit({ url: e.target.value })} className="col-span-2 h-10 rounded-lg border border-input bg-surface-2 px-3 text-xs" />
                 <label className="text-[10px] text-muted-foreground">FOX
-                  <input type="number" min="0" value={s2.tokens} onChange={(e) => saveSite({ ...s2, tokens: Number(e.target.value) })} className="text-num mt-1 h-10 w-full rounded-lg border border-input bg-surface-2 px-3 text-xs text-foreground" />
+                  <input type="number" min="0" value={s2.tokens} onChange={(e) => edit({ tokens: Number(e.target.value) })} className="text-num mt-1 h-10 w-full rounded-lg border border-input bg-surface-2 px-3 text-xs text-foreground" />
                 </label>
                 <label className="text-[10px] text-muted-foreground">USDT
-                  <input type="number" min="0" step="0.0001" value={s2.usdt} onChange={(e) => saveSite({ ...s2, usdt: Number(e.target.value) })} className="text-num mt-1 h-10 w-full rounded-lg border border-input bg-surface-2 px-3 text-xs text-foreground" />
+                  <input type="number" min="0" step="0.0001" value={s2.usdt} onChange={(e) => edit({ usdt: Number(e.target.value) })} className="text-num mt-1 h-10 w-full rounded-lg border border-input bg-surface-2 px-3 text-xs text-foreground" />
                 </label>
                 <label className="col-span-2 text-[10px] text-muted-foreground">Seconds
-                  <input type="number" min="5" value={s2.seconds} onChange={(e) => saveSite({ ...s2, seconds: Number(e.target.value) })} className="text-num mt-1 h-10 w-full rounded-lg border border-input bg-surface-2 px-3 text-xs text-foreground" />
+                  <input type="number" min="5" value={s2.seconds} onChange={(e) => edit({ seconds: Number(e.target.value) })} className="text-num mt-1 h-10 w-full rounded-lg border border-input bg-surface-2 px-3 text-xs text-foreground" />
                 </label>
               </div>
-              <div className="mt-2 grid grid-cols-2 gap-2">
+              <div className="mt-2 grid grid-cols-3 gap-2">
+                <Btn size="sm" onClick={() => saveSite(s2)}>Save</Btn>
                 <Btn size="sm" variant={s2.active === false ? "success" : "ghost"} onClick={() => saveSite({ ...s2, active: s2.active === false })}>
                   {s2.active === false ? "Enable" : "Disable"}
                 </Btn>
-                <Btn size="sm" variant="danger" onClick={() => removeSite(s2.id)}>Remove</Btn>
+                <Btn size="sm" variant="danger" onClick={() => removeSite(live.id)}>Remove</Btn>
               </div>
             </Card>
-          ))}
+            );
+          })}
           {!visitSites.length && (
             <Card><p className="text-center text-xs text-muted-foreground">No websites yet.</p></Card>
           )}
