@@ -14,6 +14,7 @@ import {
   updateDoc,
   where,
   addDoc,
+  deleteDoc,
   type DocumentData,
 } from "firebase/firestore";
 import { useEffect, useState } from "react";
@@ -56,6 +57,10 @@ export type UserDoc = {
   dayIndex: number;
   dayBonusClaimed: Record<string, boolean>;
   securityChecked: boolean;
+  /** redeemed reward codes: code -> true */
+  promoClaimed?: Record<string, boolean>;
+  /** website visit claims: siteId -> YYYY-MM-DD of last claim */
+  sitesClaimed?: Record<string, string>;
   ip: string;
   blocked: boolean;
   createdAt?: unknown;
@@ -585,3 +590,137 @@ export async function adminBroadcast(
   return (await res.json()) as { sent?: number; failed?: number };
 }
 
+
+/* ---------------- Reward codes ---------------- */
+
+export type PromoCode = {
+  id: string;
+  tokens: number;
+  usdt: number;
+  maxUses: number;
+  uses: number;
+  active: boolean;
+  createdAt?: unknown;
+};
+
+export function usePromoCodes() {
+  const [items, setItems] = useState<PromoCode[]>([]);
+  useEffect(
+    () =>
+      onSnapshot(
+        query(collection(getDb(), "promo_codes"), limit(200)),
+        (s) => setItems(s.docs.map((d) => ({ ...(d.data() as DocumentData), id: d.id }) as PromoCode)),
+        (error) => console.error("Reward code subscription failed", error),
+      ),
+    [],
+  );
+  return items;
+}
+
+export async function redeemPromoCode(userId: string, raw: string) {
+  const code = raw.trim().toUpperCase();
+  if (!code) throw new Error("Enter a reward code");
+  const db = getDb();
+  return runTransaction(db, async (t) => {
+    const codeRef = doc(db, "promo_codes", code);
+    const uRef = userRef(userId);
+    const [codeSnap, userSnap] = await Promise.all([t.get(codeRef), t.get(uRef)]);
+    if (!codeSnap.exists()) throw new Error("This reward code does not exist");
+    const promo = codeSnap.data() as PromoCode;
+    if (promo.active === false) throw new Error("This reward code is no longer active");
+    if (promo.maxUses > 0 && (promo.uses ?? 0) >= promo.maxUses)
+      throw new Error("This reward code is fully claimed");
+    const user = userSnap.data() as UserDoc | undefined;
+    if (!user) throw new Error("User account was not found");
+    if (user.promoClaimed?.[code]) throw new Error("You already claimed this code");
+    const tokens = promo.tokens ?? 0;
+    const usdt = promo.usdt ?? 0;
+    t.update(codeRef, { uses: increment(1) });
+    t.update(uRef, {
+      [`promoClaimed.${code}`]: true,
+      ...(tokens ? { tokens: increment(tokens) } : {}),
+      ...(usdt ? { usdt: increment(usdt) } : {}),
+    });
+    return { tokens, usdt };
+  });
+}
+
+export async function adminSavePromoCode(promo: PromoCode) {
+  const code = promo.id.trim().toUpperCase();
+  if (!code) throw new Error("Code is required");
+  await setDoc(
+    doc(getDb(), "promo_codes", code),
+    {
+      tokens: promo.tokens ?? 0,
+      usdt: promo.usdt ?? 0,
+      maxUses: promo.maxUses ?? 0,
+      uses: promo.uses ?? 0,
+      active: promo.active !== false,
+      createdAt: serverTimestamp(),
+    },
+    { merge: true },
+  );
+}
+
+export async function adminDeletePromoCode(id: string) {
+  await deleteDoc(doc(getDb(), "promo_codes", id));
+}
+
+/* ---------------- Visit-site rewards ---------------- */
+
+export type VisitSite = {
+  id: string;
+  title: string;
+  url: string;
+  tokens: number;
+  usdt: number;
+  seconds: number;
+  active: boolean;
+};
+
+export function useVisitSites() {
+  const [items, setItems] = useState<VisitSite[]>([]);
+  useEffect(
+    () =>
+      onSnapshot(
+        query(collection(getDb(), "visit_sites"), limit(100)),
+        (s) =>
+          setItems(
+            s.docs
+              .map((d) => ({ ...(d.data() as DocumentData), id: d.id }) as VisitSite)
+              .sort((a, b) => a.title.localeCompare(b.title)),
+          ),
+        (error) => console.error("Visit sites subscription failed", error),
+      ),
+    [],
+  );
+  return items;
+}
+
+/** One claim per site per UTC day. */
+export async function claimSiteVisit(userId: string, site: VisitSite) {
+  const db = getDb();
+  const date = today();
+  await runTransaction(db, async (t) => {
+    const uRef = userRef(userId);
+    const snap = await t.get(uRef);
+    const user = snap.data() as UserDoc | undefined;
+    if (!user) throw new Error("User account was not found");
+    if (user.sitesClaimed?.[site.id] === date) throw new Error("Already claimed today");
+    t.update(uRef, {
+      [`sitesClaimed.${site.id}`]: date,
+      ...(site.tokens ? { tokens: increment(site.tokens) } : {}),
+      ...(site.usdt ? { usdt: increment(site.usdt) } : {}),
+    });
+  });
+}
+
+export async function adminSaveVisitSite(site: VisitSite) {
+  const { id, ...data } = site;
+  const ref = id ? doc(getDb(), "visit_sites", id) : doc(collection(getDb(), "visit_sites"));
+  await setDoc(ref, { ...data, active: data.active !== false }, { merge: true });
+}
+
+export async function adminDeleteVisitSite(id: string) {
+  await deleteDoc(doc(getDb(), "visit_sites", id));
+}
