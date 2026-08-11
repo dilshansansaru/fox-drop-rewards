@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import logo from "@/assets/foxdrop-logo.png";
 import { Btn, Card, Num, Progress, SectionTitle, Sheet } from "@/components/ui-kit";
 import { GuideBox } from "@/components/GuideBox";
+import { RewardCodeCard } from "@/components/RewardCodeCard";
 import { ALLOCATION, NETWORK, REWARDS, ROADMAP, TASKS, TOKEN_PRICE_USD } from "@/lib/config";
 import { claimDayBonus, type UserDoc } from "@/lib/store";
 import { useToast } from "@/components/ui-kit";
@@ -94,6 +95,8 @@ export function HomeTab({ user }: { user: UserDoc }) {
           📖 How it works
         </Btn>
       </section>
+
+      <RewardCodeCard user={user} />
 
       <Card>
         <SectionTitle icon="🎁">Daily Rewards</SectionTitle>

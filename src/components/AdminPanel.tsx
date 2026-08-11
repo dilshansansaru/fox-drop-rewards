@@ -16,6 +16,14 @@ import {
   adminResetDailyAds,
   adminSetBlocked,
   adminSetReferralStatus,
+  adminDeletePromoCode,
+  adminDeleteVisitSite,
+  adminSavePromoCode,
+  adminSaveVisitSite,
+  usePromoCodes,
+  useVisitSites,
+  type PromoCode,
+  type VisitSite,
   approveWithdrawal,
   
   rejectWithdrawal,
@@ -35,7 +43,16 @@ import {
 } from "@/lib/app-config";
 import type { Task } from "@/lib/config";
 
-type AdminTab = "overview" | "payouts" | "users" | "referrals" | "broadcast" | "tasks" | "system";
+type AdminTab =
+  | "overview"
+  | "payouts"
+  | "users"
+  | "referrals"
+  | "broadcast"
+  | "tasks"
+  | "codes"
+  | "sites"
+  | "system";
 
 const TABS: { id: AdminTab; label: string }[] = [
   { id: "overview", label: "📊 Stats" },
@@ -44,6 +61,8 @@ const TABS: { id: AdminTab; label: string }[] = [
   { id: "referrals", label: "👥 Referrals" },
   { id: "broadcast", label: "📢 Broadcast" },
   { id: "tasks", label: "📋 Tasks" },
+  { id: "codes", label: "🎟️ Codes" },
+  { id: "sites", label: "🌐 Sites" },
   { id: "system", label: "⚙️ System" },
 ];
 
@@ -72,6 +91,11 @@ export function AdminPanel() {
   const referrals = useAllReferrals(true);
   const toast = useToast();
   const { settings } = useAppSettings();
+  const promoCodes = usePromoCodes();
+  const visitSites = useVisitSites();
+  const [newCode, setNewCode] = useState<PromoCode>({ id: "", tokens: 100, usdt: 0, maxUses: 0, uses: 0, active: true });
+  const [siteDrafts, setSiteDrafts] = useState<Record<string, VisitSite>>({});
+  const [newSite, setNewSite] = useState<VisitSite>({ id: "", title: "", url: "", tokens: 50, usdt: 0, seconds: 10, active: true });
   const liveTasks = useLiveTasks();
   const [draftSettings, setDraftSettings] = useState<AppSettings>(settings);
   const [draftTasks, setDraftTasks] = useState<Task[]>(liveTasks);
@@ -216,6 +240,48 @@ export function AdminPanel() {
       toast.push({ kind: "success", title: "Tasks saved", desc: "Task Center updated in real time." });
     } catch {
       toast.push({ kind: "error", title: "Task save failed" });
+    }
+  };
+
+  const saveCode = async (promo: PromoCode) => {
+    try {
+      await adminSavePromoCode(promo);
+      toast.push({ kind: "success", title: `Code ${promo.id.toUpperCase()} saved` });
+      if (promo === newCode) setNewCode({ id: "", tokens: 100, usdt: 0, maxUses: 0, uses: 0, active: true });
+    } catch (e) {
+      toast.push({ kind: "error", title: "Code save failed", desc: e instanceof Error ? e.message : "" });
+    }
+  };
+
+  const removeCode = async (id: string) => {
+    try {
+      await adminDeletePromoCode(id);
+      toast.push({ kind: "info", title: "Code removed" });
+    } catch {
+      toast.push({ kind: "error", title: "Delete failed" });
+    }
+  };
+
+  const saveSite = async (site: VisitSite) => {
+    if (!site.title.trim() || !site.url.trim()) {
+      toast.push({ kind: "error", title: "Title and URL are required" });
+      return;
+    }
+    try {
+      await adminSaveVisitSite(site);
+      toast.push({ kind: "success", title: "Website saved" });
+      if (site === newSite) setNewSite({ id: "", title: "", url: "", tokens: 50, usdt: 0, seconds: 10, active: true });
+    } catch {
+      toast.push({ kind: "error", title: "Website save failed" });
+    }
+  };
+
+  const removeSite = async (id: string) => {
+    try {
+      await adminDeleteVisitSite(id);
+      toast.push({ kind: "info", title: "Website removed" });
+    } catch {
+      toast.push({ kind: "error", title: "Delete failed" });
     }
   };
 
@@ -589,6 +655,106 @@ export function AdminPanel() {
             <Btn variant="outline" onClick={() => setDraftTasks((items) => [...items, { id: `task-${Date.now()}`, category: "main", title: "New Task", reward: 0, rewardUsdt: 0, icon: "🎯", kind: "link", url: "https://t.me/Fox_Drop_Bot/play" }])}>+ Add task</Btn>
             <Btn onClick={saveTasks}>Save tasks</Btn>
           </div>
+        </div>
+      )}
+
+      {tab === "codes" && (
+        <div className="space-y-3">
+          <Card>
+            <SectionTitle icon="🎟️">Create reward code</SectionTitle>
+            <div className="grid grid-cols-2 gap-2">
+              <input value={newCode.id} onChange={(e) => setNewCode((c) => ({ ...c, id: e.target.value.toUpperCase().replace(/[^A-Z0-9-]/g, "") }))} placeholder="CODE" className="text-num col-span-2 h-10 rounded-lg border border-input bg-surface-2 px-3 text-xs uppercase" />
+              <label className="text-[10px] text-muted-foreground">FOX reward
+                <input type="number" min="0" value={newCode.tokens} onChange={(e) => setNewCode((c) => ({ ...c, tokens: Number(e.target.value) }))} className="text-num mt-1 h-10 w-full rounded-lg border border-input bg-surface-2 px-3 text-xs text-foreground" />
+              </label>
+              <label className="text-[10px] text-muted-foreground">USDT reward
+                <input type="number" min="0" step="0.0001" value={newCode.usdt} onChange={(e) => setNewCode((c) => ({ ...c, usdt: Number(e.target.value) }))} className="text-num mt-1 h-10 w-full rounded-lg border border-input bg-surface-2 px-3 text-xs text-foreground" />
+              </label>
+              <label className="col-span-2 text-[10px] text-muted-foreground">Max uses (0 = unlimited)
+                <input type="number" min="0" value={newCode.maxUses} onChange={(e) => setNewCode((c) => ({ ...c, maxUses: Number(e.target.value) }))} className="text-num mt-1 h-10 w-full rounded-lg border border-input bg-surface-2 px-3 text-xs text-foreground" />
+              </label>
+            </div>
+            <Btn className="mt-3" full disabled={!newCode.id.trim()} onClick={() => saveCode(newCode)}>+ Create code</Btn>
+          </Card>
+          {promoCodes.map((c) => (
+            <Card key={c.id}>
+              <div className="flex items-start justify-between gap-2">
+                <div>
+                  <Num className="text-sm text-primary">{c.id}</Num>
+                  <p className="text-num text-[10px] text-muted-foreground">
+                    {c.tokens} FOX · {c.usdt} USDT · used {c.uses ?? 0}/{c.maxUses || "∞"}
+                  </p>
+                </div>
+                <span className={`text-btn text-[10px] uppercase ${c.active === false ? "text-destructive" : "text-success"}`}>
+                  {c.active === false ? "off" : "live"}
+                </span>
+              </div>
+              <div className="mt-2 grid grid-cols-2 gap-2">
+                <Btn size="sm" variant={c.active === false ? "success" : "ghost"} onClick={() => saveCode({ ...c, active: c.active === false })}>
+                  {c.active === false ? "Enable" : "Disable"}
+                </Btn>
+                <Btn size="sm" variant="danger" onClick={() => removeCode(c.id)}>Remove</Btn>
+              </div>
+            </Card>
+          ))}
+          {!promoCodes.length && (
+            <Card><p className="text-center text-xs text-muted-foreground">No reward codes yet.</p></Card>
+          )}
+        </div>
+      )}
+
+      {tab === "sites" && (
+        <div className="space-y-3">
+          <Card>
+            <SectionTitle icon="🌐">Add website</SectionTitle>
+            <div className="grid grid-cols-2 gap-2">
+              <input value={newSite.title} onChange={(e) => setNewSite((s2) => ({ ...s2, title: e.target.value }))} placeholder="Website name" className="col-span-2 h-10 rounded-lg border border-input bg-surface-2 px-3 text-xs" />
+              <input value={newSite.url} onChange={(e) => setNewSite((s2) => ({ ...s2, url: e.target.value }))} placeholder="https://..." className="col-span-2 h-10 rounded-lg border border-input bg-surface-2 px-3 text-xs" />
+              <label className="text-[10px] text-muted-foreground">FOX reward
+                <input type="number" min="0" value={newSite.tokens} onChange={(e) => setNewSite((s2) => ({ ...s2, tokens: Number(e.target.value) }))} className="text-num mt-1 h-10 w-full rounded-lg border border-input bg-surface-2 px-3 text-xs text-foreground" />
+              </label>
+              <label className="text-[10px] text-muted-foreground">USDT reward
+                <input type="number" min="0" step="0.0001" value={newSite.usdt} onChange={(e) => setNewSite((s2) => ({ ...s2, usdt: Number(e.target.value) }))} className="text-num mt-1 h-10 w-full rounded-lg border border-input bg-surface-2 px-3 text-xs text-foreground" />
+              </label>
+              <label className="col-span-2 text-[10px] text-muted-foreground">View seconds
+                <input type="number" min="5" value={newSite.seconds} onChange={(e) => setNewSite((s2) => ({ ...s2, seconds: Number(e.target.value) }))} className="text-num mt-1 h-10 w-full rounded-lg border border-input bg-surface-2 px-3 text-xs text-foreground" />
+              </label>
+            </div>
+            <Btn className="mt-3" full onClick={() => saveSite(newSite)}>+ Add website</Btn>
+          </Card>
+          {visitSites.map((live, index) => {
+            const s2 = siteDrafts[live.id] ?? live;
+            const edit = (patch: Partial<VisitSite>) =>
+              setSiteDrafts((d) => ({ ...d, [live.id]: { ...s2, ...patch } }));
+            return (
+            <Card key={live.id}>
+              <p className="text-btn text-sm">Website {index + 1}</p>
+              <div className="mt-2 grid grid-cols-2 gap-2">
+                <input value={s2.title} onChange={(e) => edit({ title: e.target.value })} className="col-span-2 h-10 rounded-lg border border-input bg-surface-2 px-3 text-xs" />
+                <input value={s2.url} onChange={(e) => edit({ url: e.target.value })} className="col-span-2 h-10 rounded-lg border border-input bg-surface-2 px-3 text-xs" />
+                <label className="text-[10px] text-muted-foreground">FOX
+                  <input type="number" min="0" value={s2.tokens} onChange={(e) => edit({ tokens: Number(e.target.value) })} className="text-num mt-1 h-10 w-full rounded-lg border border-input bg-surface-2 px-3 text-xs text-foreground" />
+                </label>
+                <label className="text-[10px] text-muted-foreground">USDT
+                  <input type="number" min="0" step="0.0001" value={s2.usdt} onChange={(e) => edit({ usdt: Number(e.target.value) })} className="text-num mt-1 h-10 w-full rounded-lg border border-input bg-surface-2 px-3 text-xs text-foreground" />
+                </label>
+                <label className="col-span-2 text-[10px] text-muted-foreground">Seconds
+                  <input type="number" min="5" value={s2.seconds} onChange={(e) => edit({ seconds: Number(e.target.value) })} className="text-num mt-1 h-10 w-full rounded-lg border border-input bg-surface-2 px-3 text-xs text-foreground" />
+                </label>
+              </div>
+              <div className="mt-2 grid grid-cols-3 gap-2">
+                <Btn size="sm" onClick={() => saveSite(s2)}>Save</Btn>
+                <Btn size="sm" variant={s2.active === false ? "success" : "ghost"} onClick={() => saveSite({ ...s2, active: s2.active === false })}>
+                  {s2.active === false ? "Enable" : "Disable"}
+                </Btn>
+                <Btn size="sm" variant="danger" onClick={() => removeSite(live.id)}>Remove</Btn>
+              </div>
+            </Card>
+            );
+          })}
+          {!visitSites.length && (
+            <Card><p className="text-center text-xs text-muted-foreground">No websites yet.</p></Card>
+          )}
         </div>
       )}
 
