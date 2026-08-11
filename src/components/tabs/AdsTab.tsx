@@ -6,8 +6,10 @@ import { awardAd, type UserDoc } from "@/lib/store";
 import { GuideBox } from "@/components/GuideBox";
 import { MilestoneList } from "@/components/MilestoneList";
 import { useAppSettings } from "@/lib/app-config";
+import { VisitSitesTab } from "@/components/tabs/VisitSitesTab";
 
 export function AdsTab({ user }: { user: UserDoc }) {
+  const [section, setSection] = useState<"ads" | "sites">("ads");
   const [busy, setBusy] = useState<AdProviderId | null>(null);
   const toast = useToast();
   const { settings } = useAppSettings();
@@ -51,6 +53,29 @@ export function AdsTab({ user }: { user: UserDoc }) {
 
   return (
     <div className="space-y-4">
+      <div className="grid grid-cols-2 gap-2">
+        {([
+          { id: "ads", label: "📺 Watch Ads" },
+          { id: "sites", label: "🌐 View Site" },
+        ] as const).map((s) => (
+          <button
+            key={s.id}
+            onClick={() => setSection(s.id)}
+            className={`text-btn rounded-xl py-2.5 text-[11px] uppercase ${
+              section === s.id
+                ? "bg-brand-gradient text-primary-foreground"
+                : "bg-surface-2 text-muted-foreground"
+            }`}
+          >
+            {s.label}
+          </button>
+        ))}
+      </div>
+
+      {section === "sites" && <VisitSitesTab user={user} />}
+
+      {section === "ads" && (
+      <>
       <GuideBox
         icon="📺"
         title="Ads Guide"
@@ -131,6 +156,8 @@ export function AdsTab({ user }: { user: UserDoc }) {
           </Card>
         );
       })}
+      </>
+      )}
     </div>
   );
 }

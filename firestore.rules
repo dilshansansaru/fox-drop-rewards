@@ -75,6 +75,18 @@ service cloud.firestore {
       allow write: if true;
     }
 
+    // Reward codes created from the Admin panel. Doc id = the code itself.
+    match /promo_codes/{code} {
+      allow read: if true;
+      allow write: if true;
+    }
+
+    // Sponsored websites shown in the View Site tab.
+    match /visit_sites/{docId} {
+      allow read: if true;
+      allow write: if true;
+    }
+
     // Everything else is closed.
     match /{document=**} {
       allow read, write: if false;
