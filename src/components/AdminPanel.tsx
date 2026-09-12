@@ -75,7 +75,77 @@ function Stat({ label, value, tone = "text-gold" }: { label: string; value: stri
   );
 }
 
+const ADMIN_USER = "hasanbuddika1";
+const ADMIN_PASS = "Aabbcc.123";
+const AUTH_KEY = "foxdrop_admin_auth";
+
 export function AdminPanel() {
+  const [authed, setAuthed] = useState(false);
+  const [u, setU] = useState("");
+  const [p, setP] = useState("");
+  const [err, setErr] = useState("");
+
+  useEffect(() => {
+    if (typeof window !== "undefined" && sessionStorage.getItem(AUTH_KEY) === "1") setAuthed(true);
+  }, []);
+
+  if (authed) {
+    return (
+      <div>
+        <div className="mb-3 flex justify-end">
+          <button
+            onClick={() => {
+              sessionStorage.removeItem(AUTH_KEY);
+              setAuthed(false);
+            }}
+            className="text-btn rounded-lg border border-border px-3 py-1.5 text-[10px] uppercase text-muted-foreground"
+          >
+            🔒 Lock panel
+          </button>
+        </div>
+        <AdminPanelInner />
+      </div>
+    );
+  }
+
+  return (
+    <Card className="mx-auto mt-6 max-w-sm space-y-3 p-5">
+      <SectionTitle>🔐 Admin Login</SectionTitle>
+      <input
+        value={u}
+        onChange={(e) => setU(e.target.value)}
+        placeholder="Username"
+        autoComplete="username"
+        className="w-full rounded-xl border border-border bg-background px-3 py-2 text-sm"
+      />
+      <input
+        value={p}
+        onChange={(e) => setP(e.target.value)}
+        type="password"
+        placeholder="Password"
+        autoComplete="current-password"
+        className="w-full rounded-xl border border-border bg-background px-3 py-2 text-sm"
+      />
+      {err && <p className="text-[11px] text-destructive">{err}</p>}
+      <Btn
+        onClick={() => {
+          if (u.trim() === ADMIN_USER && p === ADMIN_PASS) {
+            sessionStorage.setItem(AUTH_KEY, "1");
+            setAuthed(true);
+            setErr("");
+          } else {
+            setErr("Wrong username or password.");
+          }
+        }}
+      >
+        Unlock
+      </Btn>
+    </Card>
+  );
+}
+
+function AdminPanelInner() {
+
   const [tab, setTab] = useState<AdminTab>("overview");
   const [txids, setTxids] = useState<Record<string, string>>({});
   const [search, setSearch] = useState("");
