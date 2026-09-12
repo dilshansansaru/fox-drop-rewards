@@ -3,7 +3,7 @@ import logo from "@/assets/foxdrop-logo.png";
 import { Btn, Card, Num, Progress, SectionTitle, Sheet } from "@/components/ui-kit";
 import { GuideBox } from "@/components/GuideBox";
 import { RewardCodeCard } from "@/components/RewardCodeCard";
-import { ALLOCATION, NETWORK, REWARDS, ROADMAP, TASKS, TOKEN_PRICE_USD } from "@/lib/config";
+import { ALLOCATION, BRAND, NETWORK, REWARDS, ROADMAP, TASKS, TOKEN_PRICE_USD } from "@/lib/config";
 import { claimDayBonus, type UserDoc } from "@/lib/store";
 import { useToast } from "@/components/ui-kit";
 import { useAppSettings } from "@/lib/app-config";
@@ -54,7 +54,7 @@ export function HomeTab({ user }: { user: UserDoc }) {
             ? [{ do: "Pass the eligibility check on first open", reward: `${settings.securityCheckTokens} FOX` }]
             : []),
           { do: "Complete main tasks (join channel & group)", reward: `${settings.mainTaskUsdt} USDT each` },
-          { do: `Watch up to ${settings.dailyAdsGoal} ads every day`, reward: "10-100 FOX per ad + USDT ad tasks" },
+          { do: `Watch up to ${settings.dailyAdsGoal} ads every day (Earn → Watch Ads)`, reward: "5-10 FOX per ad + daily USDT ad tasks" },
           { do: "Invite friends with your referral link", reward: `${settings.referralTokens} FOX + ${settings.referralUsdt} USDT each` },
           { do: "Friend watches 10 ads on day 1 / 15 ads on day 2", reward: "+0.005 USDT each milestone" },
           { do: `Withdraw USDT from ${settings.minWithdraw} USDT to BEP-20`, reward: `Paid within 24h (fee ${settings.withdrawFee} USDT)` },
@@ -160,6 +160,23 @@ export function HomeTab({ user }: { user: UserDoc }) {
           <p className="text-xs text-muted-foreground">
             ✅ Main task completion instantly rewards <Num>{settings.mainTaskUsdt} USDT</Num>.
           </p>
+        </div>
+      </Card>
+
+      <Card>
+        <SectionTitle icon="🧾">Payout Proofs</SectionTitle>
+        <p className="text-xs leading-relaxed text-muted-foreground">
+          Every approved USDT withdrawal is published with its BEP-20 transaction hash, user and
+          amount in our public payment channel, so anyone can verify that payouts really happen. Top
+          earners are also shown on the public leaderboard in the Referral tab.
+        </p>
+        <div className="mt-3 flex gap-2">
+          <a className="text-btn rounded-xl bg-surface-2 px-3 py-2 text-xs uppercase text-gold" href={BRAND.payment}>
+            💳 Payment proofs
+          </a>
+          <a className="text-btn rounded-xl bg-surface-2 px-3 py-2 text-xs uppercase text-primary" href={BRAND.community}>
+            🌐 Community
+          </a>
         </div>
       </Card>
 

@@ -1,20 +1,38 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Btn, Card, Num, Progress, SectionTitle, useToast } from "@/components/ui-kit";
-import { AD_TASK_MILESTONES, type AdProviderId } from "@/lib/config";
+import { AD_TASK_MILESTONES, BRAND, type AdProviderId } from "@/lib/config";
 import { showAd, type AdError } from "@/lib/ads";
-import { awardAd, type UserDoc } from "@/lib/store";
+import { awardAd, today, type UserDoc } from "@/lib/store";
 import { GuideBox } from "@/components/GuideBox";
 import { MilestoneList } from "@/components/MilestoneList";
 import { useAppSettings } from "@/lib/app-config";
 import { VisitSitesTab } from "@/components/tabs/VisitSitesTab";
 
+const CONSENT_KEY = "foxdrop-ads-consent";
+
 export function AdsTab({ user }: { user: UserDoc }) {
   const [section, setSection] = useState<"ads" | "sites">("ads");
   const [busy, setBusy] = useState<AdProviderId | null>(null);
+  const [consent, setConsent] = useState(true);
   const toast = useToast();
   const { settings } = useAppSettings();
 
+  useEffect(() => {
+    setConsent(window.localStorage.getItem(CONSENT_KEY) === "1");
+  }, []);
+
+  const acceptAds = () => {
+    window.localStorage.setItem(CONSENT_KEY, "1");
+    setConsent(true);
+  };
+
+  const revokeAds = () => {
+    window.localStorage.removeItem(CONSENT_KEY);
+    setConsent(false);
+  };
+
   const total = Object.values(user.adsToday ?? {}).reduce((a, b) => a + (b ?? 0), 0);
+  const day = today();
 
   const watch = async (id: AdProviderId, reward: number, limit: number) => {
     const seen = user.adsToday?.[id] ?? 0;
@@ -80,16 +98,48 @@ export function AdsTab({ user }: { user: UserDoc }) {
         icon="📺"
         title="Ads Guide"
         steps={[
-          { do: "Watch an Adsgram AI ad (daily limit 20)", reward: "100 FOX per ad" },
-          { do: "Watch a Monetag ad (daily limit 15)", reward: "50 FOX per ad" },
-          { do: "Watch a GigaPub ad (daily limit 10)", reward: "50 FOX per ad" },
-          { do: "Watch a Tower Ads ad (daily limit 50)", reward: "10 FOX per ad" },
-          { do: "Ad task: watch 10 ads in total", reward: "0.002 USDT" },
-          { do: "Ad task: watch 20 ads in total", reward: "0.005 USDT" },
-          { do: "Ad task: watch 50 ads in total", reward: "0.01 USDT" },
+          { do: "Watch an Adsgram AI ad (daily limit 20)", reward: "10 FOX per ad" },
+          { do: "Watch a Monetag ad (daily limit 15)", reward: "8 FOX per ad" },
+          { do: "Watch a GigaPub ad (daily limit 10)", reward: "8 FOX per ad" },
+          { do: "Watch a Tower Ads ad (daily limit 50)", reward: "5 FOX per ad" },
+          { do: "Daily ad task: watch 10 ads today", reward: "0.002 USDT" },
+          { do: "Daily ad task: watch 20 ads today", reward: "0.005 USDT" },
+          { do: "Daily ad task: watch 50 ads today", reward: "0.01 USDT" },
         ]}
-         note={`Daily goal ${settings.dailyAdsGoal} ads. Each ad must be watched fully — rewards credit instantly. Counters reset at 00:00:00 UTC.`}
+         note={`Daily goal ${settings.dailyAdsGoal} ads. Ad tasks and their USDT rewards reset every day at 00:00:00 UTC, together with the ad counters. Watching ads is optional — every other part of FOXDROP stays fully usable.`}
       />
+
+      <Card>
+        <SectionTitle icon="📍">Where ads are shown</SectionTitle>
+        <p className="text-[11px] leading-relaxed text-muted-foreground">
+          Sponsored rewarded video ads appear only on this screen — Earn → Watch Ads → the
+          “Watch” button of a network card below. Nothing else in FOXDROP shows an ad: there are no
+          ads on Home, Tasks, Referral or Withdraw, no ads on app launch, no ads between clicks and
+          no ad click is ever required. Viewing an ad fully is enough to earn.
+        </p>
+      </Card>
+
+      {!consent ? (
+        <Card className="text-center">
+          <SectionTitle icon="✅">Your consent is required</SectionTitle>
+          <p className="mb-3 text-[11px] leading-relaxed text-muted-foreground">
+            This screen shows sponsored rewarded video ads from Adsgram, Monetag, GigaPub and Tower
+            Ads. Ads are entirely optional: if you do not agree, simply keep this screen off — tasks,
+            referrals, reward codes and withdrawals continue to work normally.
+          </p>
+          <Btn full onClick={acceptAds}>
+            I agree to watch sponsored ads
+          </Btn>
+          <p className="mt-2 text-[10px] text-muted-foreground">
+            See our{" "}
+            <a className="text-gold" href="/terms">
+              advertising &amp; privacy policy
+            </a>
+            .
+          </p>
+        </Card>
+      ) : (
+        <>
       <Card className="text-center">
         <SectionTitle icon="📺">Watch Ads</SectionTitle>
         <Num className="text-3xl text-gold">
@@ -105,18 +155,21 @@ export function AdsTab({ user }: { user: UserDoc }) {
           views. FOX are in-app reward points — nothing is auto-played and no reward is given for an
           ad that is not fully watched.
         </p>
+        <button onClick={revokeAds} className="mt-3 text-[10px] uppercase text-muted-foreground underline">
+          Turn off sponsored ads
+        </button>
       </Card>
 
 
       <MilestoneList
         user={user}
         icon="🎯"
-        title="Ad Tasks"
-        progress={user.totalAds ?? 0}
+        title="Daily Ad Tasks"
+        progress={total}
         unit="ads"
         items={AD_TASK_MILESTONES.map((m) => ({
-          key: m.key,
-          label: `Watch ${m.ads} ads`,
+          key: `${m.key}:${day}`,
+          label: `Watch ${m.ads} ads today`,
           goal: m.ads,
           usdt: m.usdt,
         }))}
@@ -156,6 +209,19 @@ export function AdsTab({ user }: { user: UserDoc }) {
           </Card>
         );
       })}
+
+      <Card>
+        <SectionTitle icon="🧾">Payout proofs</SectionTitle>
+        <p className="text-[11px] leading-relaxed text-muted-foreground">
+          Every approved USDT payout is posted with its transaction hash in our public payment
+          channel, and top earners are listed on the public leaderboard in the Referral tab.
+        </p>
+        <a className="text-btn mt-2 inline-block text-xs uppercase text-gold" href={BRAND.payment}>
+          View payout channel →
+        </a>
+      </Card>
+      </>
+      )}
       </>
       )}
     </div>
