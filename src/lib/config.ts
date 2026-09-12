@@ -60,11 +60,15 @@ export type AdProvider = {
   icon: string;
 };
 
+/**
+ * Rewards are intentionally small and realistic (a few FOX points per view,
+ * ≈ $0.005–0.01 of in-app value) so the reward economy matches real ad revenue.
+ */
 export const AD_PROVIDERS: AdProvider[] = [
-  { id: "adsgram", name: "Adsgram AI", reward: 100, dailyLimit: 20, icon: "🤖" },
-  { id: "monetag", name: "Monetag", reward: 50, dailyLimit: 15, icon: "📡" },
-  { id: "gigapub", name: "GigaPub", reward: 50, dailyLimit: 10, icon: "🛰️" },
-  { id: "towerads", name: "Tower Ads", reward: 10, dailyLimit: 50, icon: "🗼" },
+  { id: "adsgram", name: "Adsgram AI", reward: 10, dailyLimit: 20, icon: "🤖" },
+  { id: "monetag", name: "Monetag", reward: 8, dailyLimit: 15, icon: "📡" },
+  { id: "gigapub", name: "GigaPub", reward: 8, dailyLimit: 10, icon: "🛰️" },
+  { id: "towerads", name: "Tower Ads", reward: 5, dailyLimit: 50, icon: "🗼" },
 ];
 
 export type TaskCategory = "main" | "partner" | "community";
