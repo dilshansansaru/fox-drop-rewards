@@ -110,7 +110,7 @@ export function AdminPanel() {
 
   return (
     <Card className="mx-auto mt-6 max-w-sm space-y-3 p-5">
-      <SectionTitle>🔐 Admin Login</SectionTitle>
+      <SectionTitle icon="🔐">Admin Login</SectionTitle>
       <input
         value={u}
         onChange={(e) => setU(e.target.value)}
