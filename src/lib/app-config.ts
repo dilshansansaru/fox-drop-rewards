@@ -16,6 +16,11 @@ export type AppSettings = {
   tokenPriceUsd: number;
   resetTimezone: "UTC";
   adProviders: typeof AD_PROVIDERS;
+  /** Ad network ids (editable from Admin → System). */
+  adsgramBlockId: string;
+  monetagZone: string;
+  gigapubId: string;
+  toweradsId: string;
 };
 
 export const DEFAULT_SETTINGS: AppSettings = {
@@ -31,7 +36,15 @@ export const DEFAULT_SETTINGS: AppSettings = {
   tokenPriceUsd: TOKEN_PRICE_USD,
   resetTimezone: "UTC",
   adProviders: AD_PROVIDERS,
+  adsgramBlockId: (import.meta.env["VITE_ADSGRAM_BLOCK_ID"] as string | undefined) ?? "",
+  monetagZone: (import.meta.env["VITE_MONETAG_ZONE"] as string | undefined) ?? "",
+  gigapubId: (import.meta.env["VITE_GIGAPUB_ID"] as string | undefined) ?? "",
+  toweradsId: (import.meta.env["VITE_TOWERADS_ID"] as string | undefined) ?? "",
 };
+
+/** Latest settings snapshot, readable outside React (ads.ts). */
+let latestSettings: AppSettings = DEFAULT_SETTINGS;
+export const getLatestSettings = () => latestSettings;
 
 export function useAppSettings() {
   const [settings, setSettings] = useState(DEFAULT_SETTINGS);
@@ -41,7 +54,9 @@ export function useAppSettings() {
       onSnapshot(
         doc(getDb(), "app_config", "settings"),
         (snapshot) => {
-          setSettings({ ...DEFAULT_SETTINGS, ...(snapshot.data() as Partial<AppSettings> | undefined) });
+          const merged = { ...DEFAULT_SETTINGS, ...(snapshot.data() as Partial<AppSettings> | undefined) };
+          latestSettings = merged;
+          setSettings(merged);
           setLoading(false);
         },
         () => setLoading(false),
