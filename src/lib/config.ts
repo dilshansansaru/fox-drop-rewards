@@ -10,8 +10,12 @@ export const BRAND = {
 export const ADMIN_TG_IDS = ["5419054691"];
 
 
-/** 1 FOX = $0.001 */
-export const TOKEN_PRICE_USD = 0.001;
+/** 2,000 FOX = $0.01  →  1 FOX = $0.000005 */
+export const FOX_PER_CENT = 2000;
+export const TOKEN_PRICE_USD = 0.01 / FOX_PER_CENT;
+/** Human-readable rate shown everywhere in the app and bot messages. */
+export const FOX_RATE_LABEL = "2,000 FOX = $0.01";
+export const foxToUsd = (fox: number, price = TOKEN_PRICE_USD) => fox * price;
 
 export const REWARDS = {
   /** instant on join via referral link */
