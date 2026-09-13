@@ -79,7 +79,15 @@ export type Withdrawal = {
   createdAt?: unknown;
 };
 
+/** Current UTC date (YYYY-MM-DD). Every daily counter resets at 00:00:00 UTC. */
 export const today = () => new Date().toISOString().slice(0, 10);
+
+/** Ads watched today per provider — empty when the stored day is not the current UTC day. */
+export function adsTodayOf(user: UserDoc): Partial<Record<AdProviderId, number>> {
+  return user.adsDate === today() ? (user.adsToday ?? {}) : {};
+}
+export const adsTodayTotal = (user: UserDoc) =>
+  Object.values(adsTodayOf(user)).reduce((a, b) => a + (b ?? 0), 0);
 
 function timestampMillis(value: unknown) {
   if (value && typeof value === "object" && "toMillis" in value) {
@@ -117,7 +125,9 @@ async function callBot(action: string, payload: Record<string, unknown>) {
   }
 }
 
-export async function verifyTelegramMembership(chat: string, userId: string) {
+export type MembershipResult = { verified: boolean; status?: string; error?: string };
+
+export async function verifyTelegramMembership(chat: string, userId: string): Promise<MembershipResult> {
   try {
     const res = await fetch("/api/public/bot", {
       method: "POST",
@@ -128,10 +138,11 @@ export async function verifyTelegramMembership(chat: string, userId: string) {
         payload: { chat, userId },
       }),
     });
-    const j = (await res.json()) as { verified?: boolean };
-    return !!j.verified;
+    const j = (await res.json().catch(() => ({}))) as MembershipResult;
+    if (!res.ok) return { verified: false, error: j.error ?? `Verification service error (${res.status})` };
+    return { verified: !!j.verified, status: j.status, error: j.error };
   } catch {
-    return false;
+    return { verified: false, error: "Network error — please try again" };
   }
 }
 
@@ -169,19 +180,24 @@ export async function ensureUser(): Promise<UserDoc> {
     const snap = await Promise.race([
       getDoc(ref),
       new Promise<never>((_, reject) =>
-        window.setTimeout(() => reject(new Error("Firebase connection timed out")), 8000),
+        window.setTimeout(() => reject(new Error("Firebase connection timed out")), 20000),
       ),
     ]);
-    const ip = await fetchIp();
 
     if (snap.exists()) {
       const data = snap.data() as UserDoc;
       if (data.adsDate !== today()) {
-        await updateDoc(ref, { adsDate: today(), adsToday: {}, dayIndex: (data.dayIndex ?? 0) + 1 });
+        // New UTC day → reset daily counters (00:00:00 UTC).
+        await updateDoc(ref, { adsDate: today(), adsToday: {}, dayIndex: (data.dayIndex ?? 0) + 1 }).catch(
+          () => null,
+        );
+        return { ...data, id, adsDate: today(), adsToday: {}, dayIndex: (data.dayIndex ?? 0) + 1 };
       }
       return { ...data, id };
     }
 
+    // Only brand-new accounts need the IP lookup (fraud check).
+    const ip = await fetchIp();
     fresh.ip = ip;
     await setDoc(ref, { ...fresh, createdAt: serverTimestamp() });
     void callBot("new-user", { userId: id, name, username: tgu.username, ref: inviter });
@@ -483,9 +499,18 @@ export function useAllUsers(enabled = true) {
   return items;
 }
 
+/** Top inviters — reads only `max` documents instead of the whole users collection. */
 export function useLeaderboard(max = 20) {
-  const users = useAllUsers(true);
-  return [...users].sort((a, b) => (b.refCount ?? 0) - (a.refCount ?? 0)).slice(0, max);
+  const [items, setItems] = useState<UserDoc[]>([]);
+  useEffect(() => {
+    const q = query(collection(getDb(), "users"), orderBy("refCount", "desc"), limit(max));
+    return onSnapshot(
+      q,
+      (s) => setItems(s.docs.map((d) => ({ ...(d.data() as UserDoc), id: d.id }))),
+      (error) => console.error("Leaderboard subscription failed", error),
+    );
+  }, [max]);
+  return items;
 }
 
 export function useAllReferrals(enabled = true) {
