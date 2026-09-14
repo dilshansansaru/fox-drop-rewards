@@ -45,15 +45,32 @@ export function TasksTab({ user }: { user: UserDoc }) {
     }
 
     if (task.kind === "telegram" && task.chat) {
+      // Step 1 — open the channel. Verification only happens on the second tap,
+      // so Telegram has time to register the join.
+      if (!opened[task.id]) {
+        openLink(task.url);
+        setOpened((o) => ({ ...o, [task.id]: Date.now() }));
+        toast.push({
+          kind: "info",
+          title: "Join the channel",
+          desc: "After joining, come back and tap Verify.",
+        });
+        return;
+      }
+
       setBusy(task.id);
       try {
-        openLink(task.url);
-        const ok = await verifyTelegramMembership(task.chat, user.id);
-        if (!ok) {
+        let result = await verifyTelegramMembership(task.chat, user.id);
+        if (!result.verified) {
+          // Telegram can lag a second or two after a fresh join — retry once.
+          await new Promise((r) => setTimeout(r, 2500));
+          result = await verifyTelegramMembership(task.chat, user.id);
+        }
+        if (!result.verified) {
           toast.push({
             kind: "error",
             title: "Not joined yet",
-            desc: "Join the channel, then tap Verify again.",
+            desc: result.error ?? "Join the channel, then tap Verify again.",
           });
           return;
         }
@@ -117,7 +134,7 @@ export function TasksTab({ user }: { user: UserDoc }) {
 
       {list.map((t) => {
         const complete = !!user.tasks?.[t.id];
-        const waiting = t.kind === "miniapp" && opened[t.id] && !complete;
+        const waiting = !!opened[t.id] && !complete;
         return (
           <Card key={t.id} className="animate-rise">
             <div className="flex items-center gap-3">
@@ -141,9 +158,11 @@ export function TasksTab({ user }: { user: UserDoc }) {
                   : busy === t.id
                     ? "…"
                     : waiting
-                      ? "Claim"
-                      : t.kind === "telegram"
+                      ? t.kind === "telegram"
                         ? "Verify"
+                        : "Claim"
+                      : t.kind === "telegram"
+                        ? "Join"
                         : "Start"}
               </Btn>
             </div>
