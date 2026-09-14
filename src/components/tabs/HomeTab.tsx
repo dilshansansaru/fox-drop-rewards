@@ -13,25 +13,17 @@ export function HomeTab({ user }: { user: UserDoc }) {
   const toast = useToast();
   const { settings } = useAppSettings();
 
-  const adsToday = Object.values(user.adsToday ?? {}).reduce((a, b) => a + (b ?? 0), 0);
+  const adsToday = adsTodayTotal(user);
   const tasksDone = TASKS.filter((t) => user.tasks?.[t.id]).length;
-  const usdValue = user.tokens * TOKEN_PRICE_USD;
+  const usdValue = user.tokens * (settings.tokenPriceUsd || TOKEN_PRICE_USD);
 
   const dayBonuses = [
     { key: "day1", label: "Day 1 · Watch 10 ads", goal: REWARDS.day1AdsGoal, usdt: REWARDS.day1Usdt },
     { key: "day2", label: "Day 2 · Watch 15 ads", goal: REWARDS.day2AdsGoal, usdt: REWARDS.day2Usdt },
   ];
 
-  useEffect(() => {
-    if (window.localStorage.getItem("foxdrop-guide-seen") === "1") return;
-    const timer = window.setTimeout(() => setGuide(true), 250);
-    return () => window.clearTimeout(timer);
-  }, []);
-
-  const closeGuide = () => {
-    window.localStorage.setItem("foxdrop-guide-seen", "1");
-    setGuide(false);
-  };
+  // The guide sheet only opens when the user taps "How it works".
+  const closeGuide = () => setGuide(false);
 
   const claim = async (key: string, usdt: number, ok: boolean) => {
     if (!ok) return toast.push({ kind: "error", title: "Not completed yet", desc: "Watch more ads to unlock." });
@@ -48,7 +40,6 @@ export function HomeTab({ user }: { user: UserDoc }) {
       <GuideBox
         icon="📖"
         title="How FOXDROP works"
-        defaultOpen
         steps={[
           ...(settings.eligibilityEnabled
             ? [{ do: "Pass the eligibility check on first open", reward: `${settings.securityCheckTokens} FOX` }]
