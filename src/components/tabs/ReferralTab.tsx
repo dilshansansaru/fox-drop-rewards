@@ -1,5 +1,11 @@
 import { Btn, Card, Num, SectionTitle, useToast } from "@/components/ui-kit";
-import { BRAND, REFER_TASK_MILESTONES, REWARDS } from "@/lib/config";
+import {
+  BRAND,
+  FOX_RATE_LABEL,
+  REFER_TASK_MILESTONES,
+  REWARDS,
+  TOKEN_PRICE_USD,
+} from "@/lib/config";
 import { useLeaderboard, useReferrals, type ReferralStatus, type UserDoc } from "@/lib/store";
 import { openLink } from "@/lib/telegram";
 import { GuideBox } from "@/components/GuideBox";
@@ -11,6 +17,19 @@ const STATUS: Record<ReferralStatus, { label: string; cls: string }> = {
   credited: { label: "✅ Credited", cls: "text-success" },
   blocked: { label: "🚫 Blocked", cls: "text-destructive" },
 };
+
+/** The full lifetime value of a single verified referral, split into its 3 stages. */
+const STAGES = [
+  {
+    title: "Friend joins with your link (verified)",
+    fox: REWARDS.referralTokens,
+    usdt: REWARDS.referralUsdt,
+  },
+  { title: `Friend watches ${REWARDS.day1AdsGoal} ads on day 1`, fox: 0, usdt: REWARDS.day1Usdt },
+  { title: `Friend watches ${REWARDS.day2AdsGoal} ads on day 2`, fox: 0, usdt: REWARDS.day2Usdt },
+];
+
+const totalUsdt = REWARDS.referralUsdt + REWARDS.day1Usdt + REWARDS.day2Usdt;
 
 export function ReferralTab({ user }: { user: UserDoc }) {
   const toast = useToast();
@@ -64,6 +83,40 @@ export function ReferralTab({ user }: { user: UserDoc }) {
             <Num className="text-lg text-success">{REWARDS.referralUsdt}</Num>
           </div>
         </div>
+        <div className="mt-3 rounded-xl border border-gold/40 bg-surface-2 p-3">
+          <p className="text-[10px] uppercase tracking-widest text-muted-foreground">
+            Total per friend (all 3 stages)
+          </p>
+          <Num className="text-2xl text-gold">{REWARDS.referralTokens} FOX</Num>
+          <Num className="block text-lg text-success">+ {totalUsdt.toFixed(4)} USDT</Num>
+          <Num className="mt-1 block text-[11px] text-muted-foreground">
+            ≈ ${(totalUsdt + REWARDS.referralTokens * TOKEN_PRICE_USD).toFixed(4)} value · {FOX_RATE_LABEL}
+          </Num>
+        </div>
+      </Card>
+
+      <Card>
+        <SectionTitle icon="🪜">How one referral pays out — 3 stages</SectionTitle>
+        <div className="space-y-2 text-xs">
+          {STAGES.map((s, i) => (
+            <div key={s.title} className="rounded-xl bg-surface-2 p-3">
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <p className="text-btn text-[11px] uppercase text-primary">Stage {i + 1}</p>
+                  <p className="mt-0.5">{s.title}</p>
+                </div>
+                <div className="shrink-0 text-right">
+                  {s.fox ? <Num className="block text-gold">+{s.fox} FOX</Num> : null}
+                  <Num className="block text-success">+{s.usdt} USDT</Num>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+        <p className="mt-3 text-[11px] text-muted-foreground">
+          Stage 2 and Stage 3 are credited automatically as soon as your friend reaches the ad goal — the
+          Referral History below updates in real time.
+        </p>
       </Card>
 
       <MilestoneList

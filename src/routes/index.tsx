@@ -12,6 +12,7 @@ import { ADMIN_TG_IDS } from "@/lib/config";
 import { initAnalytics } from "@/lib/firebase";
 import { useAppSettings } from "@/lib/app-config";
 
+import { preloadAdSdks } from "@/lib/ads";
 import { claimSecurityBonus, useUser } from "@/lib/store";
 import { currentTgUser, initTelegram } from "@/lib/telegram";
 
@@ -75,6 +76,8 @@ function Shell() {
   useEffect(() => {
     initTelegram();
     void initAnalytics();
+    // Initialise the AdsGram placement on launch (no ad is shown until the user taps).
+    preloadAdSdks();
   }, []);
 
   const isAdmin = adminIds().includes(String(currentTgUser().id));

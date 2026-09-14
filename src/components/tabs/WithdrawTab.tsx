@@ -15,7 +15,7 @@ export function WithdrawTab({ user }: { user: UserDoc }) {
   const toast = useToast();
   const history = useWithdrawals(user.id);
 
-  const adsToday = Object.values(user.adsToday ?? {}).reduce((a, b) => a + (b ?? 0), 0);
+  const adsToday = adsTodayTotal(user);
   const mainTasksDone = TASKS.filter((t) => t.category === "main" && user.tasks?.[t.id]).length;
   const mainTasksTotal = TASKS.filter((t) => t.category === "main").length;
 

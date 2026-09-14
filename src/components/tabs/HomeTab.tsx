@@ -1,10 +1,19 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import logo from "@/assets/foxdrop-logo.png";
 import { Btn, Card, Num, Progress, SectionTitle, Sheet } from "@/components/ui-kit";
 import { GuideBox } from "@/components/GuideBox";
 import { RewardCodeCard } from "@/components/RewardCodeCard";
-import { ALLOCATION, BRAND, NETWORK, REWARDS, ROADMAP, TASKS, TOKEN_PRICE_USD } from "@/lib/config";
-import { claimDayBonus, type UserDoc } from "@/lib/store";
+import {
+  ALLOCATION,
+  BRAND,
+  FOX_RATE_LABEL,
+  NETWORK,
+  REWARDS,
+  ROADMAP,
+  TASKS,
+  TOKEN_PRICE_USD,
+} from "@/lib/config";
+import { adsTodayTotal, claimDayBonus, type UserDoc } from "@/lib/store";
 import { useToast } from "@/components/ui-kit";
 import { useAppSettings } from "@/lib/app-config";
 
@@ -13,25 +22,17 @@ export function HomeTab({ user }: { user: UserDoc }) {
   const toast = useToast();
   const { settings } = useAppSettings();
 
-  const adsToday = Object.values(user.adsToday ?? {}).reduce((a, b) => a + (b ?? 0), 0);
+  const adsToday = adsTodayTotal(user);
   const tasksDone = TASKS.filter((t) => user.tasks?.[t.id]).length;
-  const usdValue = user.tokens * TOKEN_PRICE_USD;
+  const usdValue = user.tokens * (settings.tokenPriceUsd || TOKEN_PRICE_USD);
 
   const dayBonuses = [
     { key: "day1", label: "Day 1 · Watch 10 ads", goal: REWARDS.day1AdsGoal, usdt: REWARDS.day1Usdt },
     { key: "day2", label: "Day 2 · Watch 15 ads", goal: REWARDS.day2AdsGoal, usdt: REWARDS.day2Usdt },
   ];
 
-  useEffect(() => {
-    if (window.localStorage.getItem("foxdrop-guide-seen") === "1") return;
-    const timer = window.setTimeout(() => setGuide(true), 250);
-    return () => window.clearTimeout(timer);
-  }, []);
-
-  const closeGuide = () => {
-    window.localStorage.setItem("foxdrop-guide-seen", "1");
-    setGuide(false);
-  };
+  // The guide sheet only opens when the user taps "How it works".
+  const closeGuide = () => setGuide(false);
 
   const claim = async (key: string, usdt: number, ok: boolean) => {
     if (!ok) return toast.push({ kind: "error", title: "Not completed yet", desc: "Watch more ads to unlock." });
@@ -48,7 +49,6 @@ export function HomeTab({ user }: { user: UserDoc }) {
       <GuideBox
         icon="📖"
         title="How FOXDROP works"
-        defaultOpen
         steps={[
           ...(settings.eligibilityEnabled
             ? [{ do: "Pass the eligibility check on first open", reward: `${settings.securityCheckTokens} FOX` }]
@@ -77,7 +77,7 @@ export function HomeTab({ user }: { user: UserDoc }) {
           <Num className="text-4xl text-gold">{Math.round(user.tokens).toLocaleString("en-US")}</Num>
           <p className="text-btn text-sm text-primary">FOX</p>
           <p className="mt-1 text-xs text-muted-foreground">
-            ≈ <Num>${usdValue.toFixed(3)}</Num> · 1 FOX = <Num>$0.001</Num>
+            ≈ <Num>${usdValue.toFixed(4)}</Num> · <Num>{FOX_RATE_LABEL}</Num>
           </p>
           <div className="mt-3 grid grid-cols-2 gap-3">
             <div className="rounded-xl bg-surface-2 p-3">
@@ -185,7 +185,7 @@ export function HomeTab({ user }: { user: UserDoc }) {
         <div className="space-y-2 text-sm">
           <div className="flex justify-between rounded-xl bg-surface-2 px-3 py-2">
             <span>Exchange rate</span>
-            <Num className="text-gold">1 FOX = ${settings.tokenPriceUsd}</Num>
+            <Num className="text-gold">{FOX_RATE_LABEL}</Num>
           </div>
           <div className="flex justify-between rounded-xl bg-surface-2 px-3 py-2">
             <span>Network</span>

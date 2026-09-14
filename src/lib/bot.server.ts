@@ -102,13 +102,23 @@ export async function sendPhoto(
   return response;
 }
 
+const MEMBER_STATES = ["creator", "administrator", "member", "restricted"];
+
+/** Checks channel/group membership and returns the Telegram status plus any API error. */
 export async function getChatMember(chat: string, userId: number) {
   const r = (await call("getChatMember", { chat_id: chat, user_id: userId })) as {
     ok: boolean;
-    result?: { status?: string };
+    description?: string;
+    result?: { status?: string; is_member?: boolean };
   };
+  if (!r.ok) {
+    console.error("getChatMember failed", chat, userId, r.description);
+    return { verified: false, error: r.description ?? "Telegram could not check membership" };
+  }
   const status = r.result?.status ?? "left";
-  return r.ok && ["creator", "administrator", "member"].includes(status);
+  const verified =
+    MEMBER_STATES.includes(status) && (status !== "restricted" || r.result?.is_member !== false);
+  return { verified, status };
 }
 
 export async function notifyAdmins(text: string, buttons?: unknown) {
