@@ -69,9 +69,8 @@ export const Route = createFileRoute("/api/public/bot")({
             }
             case "verify-task": {
               const chat = String(p["chat"] ?? "");
-              if (!chat) return Response.json({ verified: false });
-              const verified = await getChatMember(chat, uid);
-              return Response.json({ verified });
+              if (!chat) return Response.json({ verified: false, error: "Task channel is not configured" });
+              return Response.json(await getChatMember(chat, uid));
             }
             case "referral-joined": {
               const inviter = String(p["inviterId"] ?? "");
