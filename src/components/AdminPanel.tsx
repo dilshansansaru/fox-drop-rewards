@@ -369,6 +369,18 @@ function AdminPanelInner() {
     </label>
   );
 
+  const textField = (key: keyof AppSettings, label: string) => (
+    <label className="block text-xs text-muted-foreground">
+      {label}
+      <input
+        type="text"
+        value={String(draftSettings[key] ?? "")}
+        onChange={(e) => setDraftSettings((s) => ({ ...s, [key]: e.target.value }))}
+        className="mt-1 h-10 w-full rounded-lg border border-input bg-surface-2 px-3 text-sm text-foreground outline-none focus:border-primary"
+      />
+    </label>
+  );
+
   return (
     <div className="space-y-4">
 
@@ -909,6 +921,20 @@ function AdminPanelInner() {
               })}
             </div>
             <Btn className="mt-3" full onClick={saveSettings}>Save provider settings</Btn>
+          </Card>
+
+          <Card>
+            <SectionTitle icon="🔑">Ad network IDs</SectionTitle>
+            <p className="mb-3 text-[10px] text-muted-foreground">
+              Paste the block / zone IDs from each ad network. Empty means that network stays hidden.
+            </p>
+            <div className="grid grid-cols-1 gap-3">
+              {textField("adsgramBlockId", "Adsgram block ID")}
+              {textField("monetagZone", "Monetag zone")}
+              {textField("gigapubId", "GigaPub project ID")}
+              {textField("toweradsId", "Tower Ads ID")}
+            </div>
+            <Btn className="mt-4" full onClick={saveSettings}>Save network IDs</Btn>
           </Card>
         </>
       )}
