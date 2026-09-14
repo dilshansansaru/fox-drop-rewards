@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Btn, Card, Num, Progress, SectionTitle, useToast } from "@/components/ui-kit";
 import { AD_TASK_MILESTONES, BRAND, type AdProviderId } from "@/lib/config";
 import { showAd, type AdError } from "@/lib/ads";
-import { awardAd, today, type UserDoc } from "@/lib/store";
+import { adsTodayOf, adsTodayTotal, awardAd, today, type UserDoc } from "@/lib/store";
 import { GuideBox } from "@/components/GuideBox";
 import { MilestoneList } from "@/components/MilestoneList";
 import { useAppSettings } from "@/lib/app-config";
@@ -31,11 +31,12 @@ export function AdsTab({ user }: { user: UserDoc }) {
     setConsent(false);
   };
 
-  const total = Object.values(user.adsToday ?? {}).reduce((a, b) => a + (b ?? 0), 0);
+  const adsToday = adsTodayOf(user);
+  const total = adsTodayTotal(user);
   const day = today();
 
   const watch = async (id: AdProviderId, reward: number, limit: number) => {
-    const seen = user.adsToday?.[id] ?? 0;
+    const seen = adsToday[id] ?? 0;
     if (seen >= limit) {
       toast.push({ kind: "error", title: "Daily limit reached", desc: "Come back tomorrow." });
       return;

@@ -1,6 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { BRAND } from "@/lib/config";
-import { REWARDS } from "@/lib/config";
+import { BRAND, FOX_RATE_LABEL, REWARDS } from "@/lib/config";
 import { mainButtons, sendPhotoOrText, sendMessage, notifyAdmins } from "@/lib/bot.server";
 
 const WELCOME = `🦊 <b>WELCOME TO FOXDROP AIRDROP</b>
@@ -26,7 +25,10 @@ Earn FOX tokens and real USDT rewards from the official FOXDROP Telegram Mini Ap
 • Bot notifications are sent for request, approval, rejection and payment proof
 
 💎 <b>FOX TOKEN</b>
-1 FOX = $0.001 · FOX exchange and full token withdrawal open in <b>2027 Q2</b>.
+${FOX_RATE_LABEL} · FOX exchange and full token withdrawal open in <b>2027 Q2</b>.
+
+⏰ <b>DAILY RESET</b>
+All daily ad limits and daily bonuses reset at <b>00:00:00 UTC</b>.
 
 Tap <b>🚀 Open Mini App</b> now. Your live balance, referral progress, leaderboard and withdrawal history are available inside.`;
 
