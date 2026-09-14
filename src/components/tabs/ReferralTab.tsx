@@ -1,5 +1,11 @@
 import { Btn, Card, Num, SectionTitle, useToast } from "@/components/ui-kit";
-import { BRAND, REFER_TASK_MILESTONES, REWARDS } from "@/lib/config";
+import {
+  BRAND,
+  FOX_RATE_LABEL,
+  REFER_TASK_MILESTONES,
+  REWARDS,
+  TOKEN_PRICE_USD,
+} from "@/lib/config";
 import { useLeaderboard, useReferrals, type ReferralStatus, type UserDoc } from "@/lib/store";
 import { openLink } from "@/lib/telegram";
 import { GuideBox } from "@/components/GuideBox";
@@ -11,6 +17,19 @@ const STATUS: Record<ReferralStatus, { label: string; cls: string }> = {
   credited: { label: "✅ Credited", cls: "text-success" },
   blocked: { label: "🚫 Blocked", cls: "text-destructive" },
 };
+
+/** The full lifetime value of a single verified referral, split into its 3 stages. */
+const STAGES = [
+  {
+    title: "Friend joins with your link (verified)",
+    fox: REWARDS.referralTokens,
+    usdt: REWARDS.referralUsdt,
+  },
+  { title: `Friend watches ${REWARDS.day1AdsGoal} ads on day 1`, fox: 0, usdt: REWARDS.day1Usdt },
+  { title: `Friend watches ${REWARDS.day2AdsGoal} ads on day 2`, fox: 0, usdt: REWARDS.day2Usdt },
+];
+
+const totalUsdt = REWARDS.referralUsdt + REWARDS.day1Usdt + REWARDS.day2Usdt;
 
 export function ReferralTab({ user }: { user: UserDoc }) {
   const toast = useToast();
