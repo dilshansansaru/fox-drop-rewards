@@ -177,7 +177,7 @@ export function AdsTab({ user }: { user: UserDoc }) {
       />
 
        {settings.adProviders.map((p) => {
-        const seen = user.adsToday?.[p.id] ?? 0;
+        const seen = adsToday[p.id] ?? 0;
         const full = seen >= p.dailyLimit;
         return (
           <Card key={p.id} className="animate-rise">
