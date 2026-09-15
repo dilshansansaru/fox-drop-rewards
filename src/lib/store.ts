@@ -125,7 +125,11 @@ async function callBot(action: string, payload: Record<string, unknown>) {
   }
 }
 
-export type MembershipResult = { verified: boolean; status?: string; error?: string };
+export type MembershipResult = {
+  verified: boolean;
+  status?: string | undefined;
+  error?: string | undefined;
+};
 
 export async function verifyTelegramMembership(chat: string, userId: string): Promise<MembershipResult> {
   try {
