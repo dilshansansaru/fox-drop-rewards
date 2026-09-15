@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Btn, Card, Num, SectionTitle, useToast } from "@/components/ui-kit";
-import { NETWORK, REWARDS, TASKS, TOKEN_PRICE_USD } from "@/lib/config";
-import { requestWithdraw, useWithdrawals, type UserDoc } from "@/lib/store";
+import { FOX_RATE_LABEL, NETWORK, REWARDS, TASKS, TOKEN_PRICE_USD } from "@/lib/config";
+import { adsTodayTotal, requestWithdraw, useWithdrawals, type UserDoc } from "@/lib/store";
 import { openLink } from "@/lib/telegram";
 import { BRAND } from "@/lib/config";
 import { GuideBox } from "@/components/GuideBox";
@@ -69,12 +69,12 @@ export function WithdrawTab({ user }: { user: UserDoc }) {
         steps={[
           { do: "Complete all main tasks", reward: `FOX + ${REWARDS.mainTaskUsdt} USDT each` },
            { do: `Invite ${settings.dailyReferGoal} friends`, reward: `${settings.referralUsdt} USDT + ${settings.referralTokens} FOX each` },
-           { do: `Watch ${settings.dailyAdsGoal} ads today`, reward: "up to 100 FOX per ad" },
+           { do: `Watch ${settings.dailyAdsGoal} ads today`, reward: "5–10 FOX per ad" },
           { do: "Claim ad tasks (10 / 20 / 50 ads) and referral tasks (5 / 10 / 25 / 75 friends)", reward: "0.002–0.1 USDT each" },
            { do: `Build your USDT balance up to ${settings.minWithdraw}`, reward: "Withdraw unlocks" },
            { do: "Enter your BEP-20 address and request a withdrawal", reward: `Paid in 24h (fee ${settings.withdrawFee} USDT)` },
         ]}
-        note={`FOX → USDT exchange (1 FOX = $${TOKEN_PRICE_USD}) opens in 2027 Q2 on ${NETWORK}.`}
+        note={`FOX → USDT exchange (${FOX_RATE_LABEL}) opens in 2027 Q2 on ${NETWORK}. Daily goals reset at 00:00:00 UTC.`}
       />
       <Card className="bg-hero-glow text-center">
         <SectionTitle icon="💰">Withdraw</SectionTitle>
@@ -82,7 +82,7 @@ export function WithdrawTab({ user }: { user: UserDoc }) {
         <p className="text-xs text-muted-foreground">USDT available</p>
         <p className="mt-2 text-[11px] text-muted-foreground">
           FOX balance <Num className="text-gold">{Math.round(user.tokens).toLocaleString("en-US")}</Num> ≈{" "}
-          <Num>${(user.tokens * TOKEN_PRICE_USD).toFixed(3)}</Num> — exchangeable in 2027 Q2
+          <Num>${(user.tokens * TOKEN_PRICE_USD).toFixed(4)}</Num> — exchangeable in 2027 Q2 ({FOX_RATE_LABEL})
         </p>
       </Card>
 
