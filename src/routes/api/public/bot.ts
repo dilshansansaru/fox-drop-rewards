@@ -87,6 +87,7 @@ export const Route = createFileRoute("/api/public/bot")({
             case "verify-task": {
               const chat = String(p["chat"] ?? "");
               if (!chat) return Response.json({ verified: false, error: "Task channel is not configured" });
+              if (!uid) return Response.json({ verified: false, error: "Telegram user not detected" });
               return Response.json(await getChatMember(chat, uid));
             }
             case "referral-joined": {
