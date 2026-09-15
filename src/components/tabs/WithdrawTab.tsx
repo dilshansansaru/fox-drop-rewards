@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Btn, Card, Num, SectionTitle, useToast } from "@/components/ui-kit";
 import { NETWORK, REWARDS, TASKS, TOKEN_PRICE_USD } from "@/lib/config";
-import { requestWithdraw, useWithdrawals, type UserDoc } from "@/lib/store";
+import { adsTodayTotal, requestWithdraw, useWithdrawals, type UserDoc } from "@/lib/store";
 import { openLink } from "@/lib/telegram";
 import { BRAND } from "@/lib/config";
 import { GuideBox } from "@/components/GuideBox";
