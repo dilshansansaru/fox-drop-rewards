@@ -51,10 +51,27 @@ export const Route = createFileRoute("/api/public/bot")({
         if (!parsed.success) return Response.json({ error: "Invalid payload" }, { status: 400 });
         const { initData, action, payload } = parsed.data;
 
-        const verifiedId = await verifyInitData(initData);
+        if (!process.env["TELEGRAM_BOT_TOKEN"]) {
+          console.error("TELEGRAM_BOT_TOKEN is not configured");
+          return Response.json(
+            { verified: false, error: "Bot is not configured yet — contact support" },
+            { status: 503 },
+          );
+        }
+
+        let verifiedId: number | null = null;
+        try {
+          verifiedId = await verifyInitData(initData);
+        } catch (e) {
+          console.error("initData verification failed", e);
+          verifiedId = null;
+        }
         const devMode = process.env["ALLOW_UNVERIFIED_TG"] === "true";
         if (!verifiedId && !devMode) {
-          return Response.json({ error: "Unauthorized" }, { status: 401 });
+          return Response.json(
+            { verified: false, error: "Open the app inside Telegram to verify tasks" },
+            { status: 401 },
+          );
         }
         const uid = verifiedId ?? Number(payload["userId"] ?? 0);
         const p = payload as Record<string, string | number | undefined>;
