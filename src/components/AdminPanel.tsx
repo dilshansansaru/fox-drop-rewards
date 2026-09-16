@@ -75,29 +75,23 @@ function Stat({ label, value, tone = "text-gold" }: { label: string; value: stri
   );
 }
 
-const ADMIN_USER = "hasanbuddika1";
-const ADMIN_PASS = "Aabbcc.123";
-const AUTH_KEY = "foxdrop_admin_auth";
-
 export function AdminPanel() {
-  const [authed, setAuthed] = useState(false);
+  const { ready, isAdmin } = useAdminSession();
   const [u, setU] = useState("");
   const [p, setP] = useState("");
   const [err, setErr] = useState("");
+  const [busy, setBusy] = useState(false);
 
-  useEffect(() => {
-    if (typeof window !== "undefined" && sessionStorage.getItem(AUTH_KEY) === "1") setAuthed(true);
-  }, []);
+  if (!ready) {
+    return <p className="mt-8 text-center text-xs text-muted-foreground">Checking admin session…</p>;
+  }
 
-  if (authed) {
+  if (isAdmin) {
     return (
       <div>
         <div className="mb-3 flex justify-end">
           <button
-            onClick={() => {
-              sessionStorage.removeItem(AUTH_KEY);
-              setAuthed(false);
-            }}
+            onClick={() => void adminLogout()}
             className="text-btn rounded-lg border border-border px-3 py-1.5 text-[10px] uppercase text-muted-foreground"
           >
             🔒 Lock panel
@@ -111,6 +105,10 @@ export function AdminPanel() {
   return (
     <Card className="mx-auto mt-6 max-w-sm space-y-3 p-5">
       <SectionTitle icon="🔐">Admin Login</SectionTitle>
+      <p className="text-[11px] leading-relaxed text-muted-foreground">
+        Protected by a verified admin account. Without it, no balance, payout or settings change is
+        accepted by the database.
+      </p>
       <input
         value={u}
         onChange={(e) => setU(e.target.value)}
@@ -128,17 +126,20 @@ export function AdminPanel() {
       />
       {err && <p className="text-[11px] text-destructive">{err}</p>}
       <Btn
-        onClick={() => {
-          if (u.trim() === ADMIN_USER && p === ADMIN_PASS) {
-            sessionStorage.setItem(AUTH_KEY, "1");
-            setAuthed(true);
-            setErr("");
-          } else {
-            setErr("Wrong username or password.");
+        disabled={busy}
+        onClick={async () => {
+          setBusy(true);
+          setErr("");
+          try {
+            await adminLogin(u, p);
+          } catch (e) {
+            setErr(e instanceof Error ? e.message : "Login failed");
+          } finally {
+            setBusy(false);
           }
         }}
       >
-        Unlock
+        {busy ? "Checking…" : "Unlock"}
       </Btn>
     </Card>
   );
