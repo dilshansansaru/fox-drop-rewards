@@ -45,7 +45,7 @@ export function mainButtons(extra: Btn[] = []) {
       [{ text: "🚀 Open Mini App", url: BRAND.miniAppUrl }],
       [
         { text: "🌐 Community", url: BRAND.community },
-        { text: "💳 Payment Channel", url: BRAND.payment },
+        { text: "🧾 Public Payout Channel", url: BRAND.payment },
       ],
       ...(extra.length ? [extra] : []),
     ],

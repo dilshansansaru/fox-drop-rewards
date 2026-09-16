@@ -1,90 +1,129 @@
 rules_version = '2';
 
 // ─────────────────────────────────────────────────────────────────────────────
-// FOXDROP — Firestore Security Rules
+// FOXDROP — Firestore Security Rules (hardened)
 // Firebase Console → Build → Firestore Database → Rules → paste → Publish
-// (see FIREBASE_SETUP.md for step-by-step instructions)
 //
-// Telegram Mini Apps have no Firebase Auth session, so the Mini App writes with
-// the public web API key. These rules therefore validate DATA SHAPE and limit
-// what a client may change, instead of relying on auth.uid.
+// Telegram Mini Apps have no Firebase Auth session, so normal players write with
+// the public web API key. These rules therefore:
+//   1. allow ONLY small, realistic reward changes from a player session
+//      (a hacked client cannot set a huge balance),
+//   2. forbid a player from touching admin data (payout status, settings,
+//      reward codes, sites, block flag, referral payouts),
+//   3. require a verified ADMIN Firebase Auth account for every admin write.
+// Admin account: Authentication → Users → Add user → email below (Email/Password
+// sign-in must be enabled).
 // ─────────────────────────────────────────────────────────────────────────────
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    function isNum(v) { return v is number; }
-    function changed(field) {
-      return request.resource.data[field] != resource.data[field];
+    function admin() {
+      return request.auth != null
+             && request.auth.token.email == 'hasanbuddika1@foxdrop.app'
+             && request.auth.token.email_verified != false;
     }
 
-    // App users. Doc id = Telegram user id.
+    function isNum(v) { return v is number; }
+    function unchanged(field) {
+      return request.resource.data[field] == resource.data[field];
+    }
+    function delta(field) {
+      return request.resource.data[field] - resource.data[field];
+    }
+
+    // Maximum a single player write may add. Every legit reward is far below
+    // these values, so a tampered client cannot inflate a balance.
+    function maxTokenGain() { return 2000; }
+    function maxUsdtGain() { return 0.02; }
+
     match /users/{userId} {
       allow get, list: if true;
 
-      // Creation must look like a fresh account (no pre-loaded balances).
+      // A new account always starts empty — no pre-loaded balance.
       allow create: if request.resource.data.id == userId
                     && request.resource.data.name is string
-                    && isNum(request.resource.data.tokens)
-                    && isNum(request.resource.data.usdt)
-                    && request.resource.data.tokens >= 0
-                    && request.resource.data.usdt >= 0
+                    && request.resource.data.tokens == 0
+                    && request.resource.data.usdt == 0
+                    && request.resource.data.refCount == 0
                     && request.resource.data.blocked == false;
 
-      // Updates: balances must stay non-negative and the id can never change.
-      allow update: if request.resource.data.id == resource.data.id
-                    && isNum(request.resource.data.tokens)
-                    && isNum(request.resource.data.usdt)
-                    && request.resource.data.tokens >= 0
-                    && request.resource.data.usdt >= 0;
+      // Player session: tiny, bounded changes only.
+      function playerUpdate() {
+        return unchanged('id')
+               && unchanged('referredBy')
+               && unchanged('ip')
+               && unchanged('blocked')
+               && resource.data.blocked == false
+               && isNum(request.resource.data.tokens)
+               && isNum(request.resource.data.usdt)
+               && request.resource.data.tokens >= 0
+               && request.resource.data.usdt >= 0
+               && delta('tokens') <= maxTokenGain()
+               && delta('usdt') <= maxUsdtGain()
+               && request.resource.data.refCount <= resource.data.refCount + 1;
+      }
 
+      allow update: if admin() || playerUpdate();
       allow delete: if false;
     }
 
-    // Referral records. Doc id = referred Telegram user id (1 per invitee).
     match /referrals/{docId} {
       allow get, list: if true;
       allow create: if request.resource.data.userId == docId
                     && request.resource.data.inviterId is string
                     && request.resource.data.inviterId != docId
                     && isNum(request.resource.data.tokens)
-                    && isNum(request.resource.data.usdt);
-      allow update: if request.resource.data.userId == resource.data.userId
-                    && request.resource.data.inviterId == resource.data.inviterId;
+                    && isNum(request.resource.data.usdt)
+                    && request.resource.data.tokens <= 2000
+                    && request.resource.data.usdt <= 0.02;
+      // Milestone progress only; status/inviter are admin-controlled.
+      allow update: if admin() || (
+                      unchanged('userId')
+                      && unchanged('inviterId')
+                      && unchanged('status')
+                      && delta('usdt') <= 0.01
+                      && request.resource.data.usdt >= 0
+                    );
       allow delete: if false;
     }
 
-    // USDT withdrawal requests.
     match /withdrawals/{docId} {
       allow get, list: if true;
+      // Players may only create a pending request.
       allow create: if request.resource.data.userId is string
                     && isNum(request.resource.data.amount)
                     && request.resource.data.amount > 0
                     && request.resource.data.address is string
                     && request.resource.data.address.size() >= 20
                     && request.resource.data.status == 'pending';
-      allow update: if request.resource.data.userId == resource.data.userId
-                    && request.resource.data.amount == resource.data.amount
-                    && request.resource.data.status in ['pending', 'approved', 'rejected'];
+      // Approve / reject / txid: ADMIN ONLY.
+      allow update: if admin();
       allow delete: if false;
     }
 
-    // Runtime settings + task list, edited from the in-app Admin panel and read
-    // in real time by every client.
+    // Runtime settings and task list: everyone reads, only admin edits.
     match /app_config/{docId} {
       allow read: if true;
-      allow write: if true;
+      allow write: if admin();
     }
 
-    // Reward codes created from the Admin panel. Doc id = the code itself.
+    // Reward codes: admin creates them; a player may only bump the use counter.
     match /promo_codes/{code} {
       allow read: if true;
-      allow write: if true;
+      allow create, delete: if admin();
+      allow update: if admin() || (
+                      request.resource.data.tokens == resource.data.tokens
+                      && request.resource.data.usdt == resource.data.usdt
+                      && request.resource.data.maxUses == resource.data.maxUses
+                      && request.resource.data.active == resource.data.active
+                      && delta('uses') == 1
+                    );
     }
 
-    // Sponsored websites shown in the View Site tab.
+    // Sponsored websites: admin managed.
     match /visit_sites/{docId} {
       allow read: if true;
-      allow write: if true;
+      allow write: if admin();
     }
 
     // Everything else is closed.

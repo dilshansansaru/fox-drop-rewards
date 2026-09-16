@@ -3,8 +3,12 @@ export const BRAND = {
   botUsername: "Fox_Drop_Bot",
   miniAppUrl: "https://t.me/Fox_Drop_Bot/play",
   community: "https://t.me/FoxDropcommunity",
+  /** Public payout channel — every approved payout proof is published here. */
   payment: "https://t.me/FoxDroppayment",
 };
+
+/** Label used everywhere so the payout channel is clearly public (AdsGram rule 8). */
+export const PAYOUT_CHANNEL_LABEL = "Public Payout Channel";
 
 /** Telegram user ids that can see the Admin tab (public info, not a secret). */
 export const ADMIN_TG_IDS = ["5419054691"];
@@ -105,7 +109,7 @@ export const TASKS: Task[] = [
   {
     id: "join-payment",
     category: "main",
-    title: "Join Payment Proof Channel",
+    title: "Join Public Payout Channel",
     reward: 300,
     icon: "💳",
     kind: "telegram",

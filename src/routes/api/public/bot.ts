@@ -39,7 +39,7 @@ const txButtons = (txid?: string) => ({
       },
     ],
     [{ text: "🚀 Open Mini App", url: BRAND.miniAppUrl }],
-    [{ text: "💳 Payment Channel", url: BRAND.payment }],
+    [{ text: "🧾 Public Payout Channel", url: BRAND.payment }],
   ],
 });
 
@@ -132,7 +132,20 @@ export const Route = createFileRoute("/api/public/bot")({
               if (target) await sendMessage(target, text, txButtons(txid));
               await notifyAdmins(`🛠️ <b>ADMIN PAYMENT CONFIRMATION</b>\n\n${text}`, txButtons(txid));
               const channel = paymentChannelId();
-              if (channel) await sendMessage(channel, `💸 <b>PAYMENT SENT</b>\n\n${text}`, txButtons(txid));
+              if (channel) {
+                const proof =
+                  `🧾💸 <b>FOXDROP PAYMENT PROOF</b> 💸🧾\n` +
+                  `━━━━━━━━━━━━━━━━━━\n` +
+                  `👤 <b>User:</b> @${p["username"] ?? "user"}\n` +
+                  `💵 <b>Amount:</b> ${fmt.usdt(Number(p["amount"] ?? 0))}\n` +
+                  `🏦 <b>Network:</b> BEP-20 (BSC)\n` +
+                  `🧾 <b>TX Hash:</b> <code>${txid ?? "-"}</code>\n` +
+                  `⏱ <b>Status:</b> ✅ PAID & CONFIRMED\n` +
+                  `━━━━━━━━━━━━━━━━━━\n` +
+                  `🦊 All FOXDROP payouts are published in this public channel.\n` +
+                  `🚀 Start earning: ${BRAND.miniAppUrl}`;
+                await sendMessage(channel, proof, txButtons(txid));
+              }
               return Response.json({ ok: true });
             }
             case "withdraw-rejected": {

@@ -54,11 +54,18 @@ export function openLink(url: string) {
   window.open(url, "_blank", "noopener,noreferrer");
 }
 
-/** Dev fallback user so the app is usable outside Telegram. */
+/** Local development only — never available in the deployed mini app. */
 const DEV_USER: TgUser = { id: 999000001, first_name: "Guest", username: "guest_dev" };
+const ALLOW_DEV_USER = import.meta.env.DEV;
 
+/**
+ * The Telegram user of the current session. Outside Telegram the app must not
+ * work at all, so the id stays 0 and the UI shows the "Open in Telegram" gate.
+ */
 export function currentTgUser(): TgUser {
-  return tg()?.initDataUnsafe?.user ?? DEV_USER;
+  const user = tg()?.initDataUnsafe?.user;
+  if (user) return user;
+  return ALLOW_DEV_USER ? DEV_USER : { id: 0, first_name: "" };
 }
 
 export function startParam(): string | null {

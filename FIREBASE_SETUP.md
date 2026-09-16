@@ -49,3 +49,32 @@ Project Settings → General → Your apps → Web app එකේ config එක
 > ⚠️ Production funds handle කරන්න යනවා නම්, admin writes (balance adjust, payout
 > approve) Firebase **Admin SDK** එකක් සහිත server එකකට ගෙනියන්න — දැනට ඒවා
 > client-side; rules වලින් shape validation විතරයි කරන්නේ.
+
+---
+
+## 🔐 Security hardening (do these 2 steps)
+
+Balances can no longer be rewritten from a hacked browser session, and the admin
+panel now needs a real login. Two one-time steps in the Firebase Console:
+
+### 1. Create the admin account
+Firebase Console → **Authentication** → *Sign-in method* → enable **Email/Password**
+→ *Users* → **Add user**:
+
+* Email: `hasanbuddika1@foxdrop.app`
+* Password: your admin password (the one you type in the app's Admin tab)
+
+The Admin tab now signs in with this account. Username stays `hasanbuddika1`.
+
+### 2. Publish the new rules
+Copy **`firestore.rules`** → Firebase Console → **Firestore Database** → *Rules* →
+paste → **Publish**.
+
+What the new rules block:
+* a player session can add at most **2,000 FOX / 0.02 USDT per write** — no big
+  balance injection is possible;
+* `blocked`, `ip`, `referredBy` and the account id can never be changed by a player;
+* **withdrawal approval, txid, settings, tasks, reward codes and sites are admin-only**
+  (they require the Firebase admin login);
+* referral status and payout amounts cannot be edited by players;
+* nothing can be deleted from the client.
