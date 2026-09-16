@@ -212,13 +212,14 @@ export function AdsTab({ user }: { user: UserDoc }) {
       })}
 
       <Card>
-        <SectionTitle icon="🧾">Payout proofs</SectionTitle>
+        <SectionTitle icon="🧾">Public Payout Channel</SectionTitle>
         <p className="text-[11px] leading-relaxed text-muted-foreground">
-          Every approved USDT payout is posted with its transaction hash in our public payment
-          channel, and top earners are listed on the public leaderboard in the Referral tab.
+          Every approved USDT payout is posted with its transaction hash in our <b>public payout
+          channel</b> (open to everyone), and top earners are listed on the public leaderboard in the
+          Referral tab.
         </p>
         <a className="text-btn mt-2 inline-block text-xs uppercase text-gold" href={BRAND.payment}>
-          View payout channel →
+          View public payout channel →
         </a>
       </Card>
       </>

@@ -164,15 +164,16 @@ export function HomeTab({ user }: { user: UserDoc }) {
       </Card>
 
       <Card>
-        <SectionTitle icon="🧾">Payout Proofs</SectionTitle>
+        <SectionTitle icon="🧾">Public Payout Channel</SectionTitle>
         <p className="text-xs leading-relaxed text-muted-foreground">
           Every approved USDT withdrawal is published with its BEP-20 transaction hash, user and
-          amount in our public payment channel, so anyone can verify that payouts really happen. Top
-          earners are also shown on the public leaderboard in the Referral tab.
+          amount in our <b>public payout channel</b> — open to everyone, no join required — so anyone
+          can verify that payouts really happen. Top earners are also shown on the public leaderboard
+          in the Referral tab.
         </p>
         <div className="mt-3 flex gap-2">
           <a className="text-btn rounded-xl bg-surface-2 px-3 py-2 text-xs uppercase text-gold" href={BRAND.payment}>
-            💳 Payment proofs
+            🧾 Public payout channel
           </a>
           <a className="text-btn rounded-xl bg-surface-2 px-3 py-2 text-xs uppercase text-primary" href={BRAND.community}>
             🌐 Community
