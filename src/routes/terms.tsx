@@ -80,7 +80,7 @@ function Terms() {
         </p>
         <p>
           <b>Payout proof:</b> each approved USDT payout is published with its BEP-20 transaction
-          hash, recipient and amount in our public payment channel, and a public leaderboard is shown
+          hash, recipient and amount in our public payout channel, and a public leaderboard is shown
           inside the app, so payouts can be independently verified.
         </p>
         <p>
