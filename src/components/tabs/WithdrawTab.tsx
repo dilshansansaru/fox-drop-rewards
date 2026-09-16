@@ -141,7 +141,7 @@ export function WithdrawTab({ user }: { user: UserDoc }) {
           ⏱ Withdrawals are paid within 24 hours.
         </p>
         <Btn className="mt-2" size="sm" variant="outline" full onClick={() => openLink(BRAND.payment)}>
-          💳 Payment Channel
+          🧾 Public Payout Channel
         </Btn>
       </Card>
 
