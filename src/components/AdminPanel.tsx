@@ -42,6 +42,7 @@ import {
   type AppSettings,
 } from "@/lib/app-config";
 import type { Task } from "@/lib/config";
+import { adminLogin, adminLogout, useAdminSession } from "@/lib/admin-auth";
 
 type AdminTab =
   | "overview"

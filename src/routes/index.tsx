@@ -60,6 +60,36 @@ function adminIds() {
 
 
 function App() {
+  const [outside, setOutside] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    // The mini app runs only inside Telegram (@Fox_Drop_Bot). A browser session
+    // has no verified Telegram identity, so nothing can be earned or changed.
+    const inside = isInsideTelegram() && Number(currentTgUser().id) > 0;
+    setOutside(!inside && !import.meta.env.DEV);
+  }, []);
+
+  if (outside === null) return null;
+
+  if (outside) {
+    return (
+      <main className="bg-hero-glow flex min-h-screen flex-col items-center justify-center gap-4 px-6 text-center">
+        <div className="text-logo text-4xl text-primary">FOXDROP</div>
+        <p className="text-btn text-sm text-gold">Telegram only</p>
+        <p className="max-w-xs text-xs leading-relaxed text-muted-foreground">
+          This airdrop mini app works only inside Telegram, through the official bot
+          <b> @Fox_Drop_Bot</b>. Open it there to see your balance and earn rewards.
+        </p>
+        <a
+          href={BRAND.miniAppUrl}
+          className="text-btn rounded-xl bg-primary px-5 py-2.5 text-xs uppercase text-primary-foreground"
+        >
+          🚀 Open in Telegram
+        </a>
+      </main>
+    );
+  }
+
   return (
     <ToastHost>
       <Shell />
