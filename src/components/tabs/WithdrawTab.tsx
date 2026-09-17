@@ -5,10 +5,11 @@ import { adsTodayTotal, requestWithdraw, useWithdrawals, type UserDoc } from "@/
 import { openLink } from "@/lib/telegram";
 import { BRAND } from "@/lib/config";
 import { GuideBox } from "@/components/GuideBox";
-import { useAppSettings } from "@/lib/app-config";
+import { useAppSettings, useLiveTasks } from "@/lib/app-config";
 
 export function WithdrawTab({ user }: { user: UserDoc }) {
   const { settings } = useAppSettings();
+  const tasks = useLiveTasks();
   const [amount, setAmount] = useState("");
   const [address, setAddress] = useState("");
   const [busy, setBusy] = useState(false);
@@ -16,11 +17,14 @@ export function WithdrawTab({ user }: { user: UserDoc }) {
   const history = useWithdrawals(user.id);
 
   const adsToday = adsTodayTotal(user);
-  const mainTasksDone = TASKS.filter((t) => t.category === "main" && user.tasks?.[t.id]).length;
-  const mainTasksTotal = TASKS.filter((t) => t.category === "main").length;
+  const mainTasks = tasks.filter((task) => task.category === "main");
+  const mainTasksDone = mainTasks.filter((task) => user.tasks?.[task.id]).length;
+  const mainTasksTotal = mainTasks.length;
 
   const requirements = [
-    { label: `Complete all ${mainTasksTotal} main tasks`, ok: mainTasksDone >= mainTasksTotal },
+    ...(mainTasksTotal > 0
+      ? [{ label: `Complete all ${mainTasksTotal} main tasks`, ok: mainTasksDone >= mainTasksTotal }]
+      : []),
     { label: `Invite ${settings.dailyReferGoal} friends`, ok: (user.refCount ?? 0) >= settings.dailyReferGoal },
     { label: `Watch ${settings.dailyAdsGoal} ads today`, ok: adsToday >= settings.dailyAdsGoal },
     { label: `Balance of at least ${settings.minWithdraw} USDT`, ok: user.usdt >= settings.minWithdraw },
@@ -67,7 +71,9 @@ export function WithdrawTab({ user }: { user: UserDoc }) {
         icon="💰"
         title="Withdraw Guide"
         steps={[
-          { do: "Complete all main tasks", reward: `FOX + ${REWARDS.mainTaskUsdt} USDT each` },
+          ...(mainTasksTotal > 0
+            ? [{ do: "Complete all main tasks", reward: `FOX + ${REWARDS.mainTaskUsdt} USDT each` }]
+            : []),
            { do: `Invite ${settings.dailyReferGoal} friends`, reward: `${settings.referralUsdt} USDT + ${settings.referralTokens} FOX each` },
            { do: `Watch ${settings.dailyAdsGoal} ads today`, reward: "5–10 FOX per ad" },
           { do: "Claim ad tasks (10 / 20 / 50 ads) and referral tasks (5 / 10 / 25 / 75 friends)", reward: "0.002–0.1 USDT each" },
