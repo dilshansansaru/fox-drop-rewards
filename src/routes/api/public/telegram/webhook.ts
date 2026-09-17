@@ -59,33 +59,34 @@ export const Route = createFileRoute("/api/public/telegram/webhook")({
         const text = msg?.text ?? "";
         if (!chatId) return Response.json({ ok: true, ignored: true });
 
-        if (text.startsWith("/start")) {
-          const ref = text.split(" ")[1];
-          await sendPhotoOrText(chatId, WELCOME, mainButtons());
-          if (ref) {
+        try {
+          if (text.startsWith("/start")) {
+            const ref = text.split(" ")[1];
+            await sendPhotoOrText(chatId, WELCOME, mainButtons());
+            if (ref) {
+              await sendMessage(
+                chatId,
+                `👥 You joined via referral code <code>${ref}</code>. Open the mini app to lock in your bonus.`,
+                mainButtons(),
+              );
+            }
+            await notifyAdmins(
+              `🆕 <b>New user started the bot</b>\n👤 ${msg?.from?.first_name ?? "-"} (@${msg?.from?.username ?? "none"})\n🆔 <code>${msg?.from?.id}</code>`,
+            );
+          } else if (text.startsWith("/help") || text.startsWith("/guide")) {
             await sendMessage(
               chatId,
-              `👥 You joined via referral code <code>${ref}</code>. Open the mini app to lock in your bonus.`,
+              `📖 <b>FOXDROP GUIDE</b>\n\n1️⃣ Open the mini app & pass the security check\n2️⃣ Complete Main / Partner / Community tasks\n3️⃣ Watch daily ads (${REWARDS.dailyAdsGoal}/day)\n4️⃣ Invite friends → ${REWARDS.referralTokens} FOX + ${REWARDS.referralUsdt} USDT instantly\n5️⃣ Withdraw from ${REWARDS.minWithdraw} USDT to your ${"BEP-20"} address\n\n⏱ Withdrawals are processed within 24 hours.`,
               mainButtons(),
             );
+          } else {
+            await sendMessage(chatId, `🦊 Use <b>🚀 Open Mini App</b> to earn.\n${BRAND.miniAppUrl}`, mainButtons());
           }
-          await notifyAdmins(
-            `🆕 <b>New user started the bot</b>\n👤 ${msg?.from?.first_name ?? "-"} (@${msg?.from?.username ?? "none"})\n🆔 <code>${msg?.from?.id}</code>`,
-          );
-          return Response.json({ ok: true });
+        } catch (err) {
+          console.error("Telegram webhook handling failed:", err);
         }
-
-        if (text.startsWith("/help") || text.startsWith("/guide")) {
-          await sendMessage(
-            chatId,
-            `📖 <b>FOXDROP GUIDE</b>\n\n1️⃣ Open the mini app & pass the security check\n2️⃣ Complete Main / Partner / Community tasks\n3️⃣ Watch daily ads (${REWARDS.dailyAdsGoal}/day)\n4️⃣ Invite friends → ${REWARDS.referralTokens} FOX + ${REWARDS.referralUsdt} USDT instantly\n5️⃣ Withdraw from ${REWARDS.minWithdraw} USDT to your ${"BEP-20"} address\n\n⏱ Withdrawals are processed within 24 hours.`,
-            mainButtons(),
-          );
-          return Response.json({ ok: true });
-        }
-
-        await sendMessage(chatId, `🦊 Use <b>🚀 Open Mini App</b> to earn.\n${BRAND.miniAppUrl}`, mainButtons());
         return Response.json({ ok: true });
+
       },
     },
   },
