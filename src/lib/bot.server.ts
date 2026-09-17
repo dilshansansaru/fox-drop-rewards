@@ -104,16 +104,29 @@ export async function sendPhoto(
 
 const MEMBER_STATES = ["creator", "administrator", "member", "restricted"];
 
+function normalizeChat(chat: string) {
+  const value = chat.trim();
+  const telegramUrl = value.match(/^https?:\/\/(?:www\.)?t\.me\/([^/?#]+)/i);
+  if (telegramUrl?.[1]) return `@${telegramUrl[1].replace(/^@/, "")}`;
+  if (/^[A-Za-z][A-Za-z0-9_]{4,}$/.test(value)) return `@${value}`;
+  return value;
+}
+
 /** Checks channel/group membership and returns the Telegram status plus any API error. */
 export async function getChatMember(chat: string, userId: number) {
-  const r = (await call("getChatMember", { chat_id: chat, user_id: userId })) as {
+  const normalizedChat = normalizeChat(chat);
+  const r = (await call("getChatMember", { chat_id: normalizedChat, user_id: userId })) as {
     ok: boolean;
     description?: string;
     result?: { status?: string; is_member?: boolean };
   };
   if (!r.ok) {
-    console.error("getChatMember failed", chat, userId, r.description);
-    return { verified: false, error: r.description ?? "Telegram could not check membership" };
+    console.error("getChatMember failed", normalizedChat, userId, r.description);
+    const rawError = r.description ?? "Telegram could not check membership";
+    const error = /chat not found|not enough rights|member list is inaccessible/i.test(rawError)
+      ? "Verification bot must be an admin in this public channel"
+      : rawError;
+    return { verified: false, error };
   }
   const status = r.result?.status ?? "left";
   const verified =

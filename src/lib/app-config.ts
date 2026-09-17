@@ -78,7 +78,9 @@ export function useLiveTasks() {
         doc(getDb(), "app_config", "tasks"),
         (snapshot) => {
           const data = snapshot.data() as { items?: Task[] } | undefined;
-          setTasks(data?.items?.length ? data.items : TASKS);
+          // An existing empty array means the admin intentionally removed every task.
+          // Only use the bundled defaults before a task configuration document exists.
+          setTasks(Array.isArray(data?.items) ? data.items : TASKS);
         },
         () => setTasks(TASKS),
       ),
