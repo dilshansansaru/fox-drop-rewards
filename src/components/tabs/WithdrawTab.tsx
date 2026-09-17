@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Btn, Card, Num, SectionTitle, useToast } from "@/components/ui-kit";
-import { FOX_RATE_LABEL, NETWORK, REWARDS, TASKS, TOKEN_PRICE_USD } from "@/lib/config";
+import { FOX_RATE_LABEL, NETWORK, REWARDS, TOKEN_PRICE_USD } from "@/lib/config";
 import { adsTodayTotal, requestWithdraw, useWithdrawals, type UserDoc } from "@/lib/store";
 import { openLink } from "@/lib/telegram";
 import { BRAND } from "@/lib/config";

@@ -10,20 +10,20 @@ import {
   NETWORK,
   REWARDS,
   ROADMAP,
-  TASKS,
   TOKEN_PRICE_USD,
 } from "@/lib/config";
 import { adsTodayTotal, claimDayBonus, type UserDoc } from "@/lib/store";
 import { useToast } from "@/components/ui-kit";
-import { useAppSettings } from "@/lib/app-config";
+import { useAppSettings, useLiveTasks } from "@/lib/app-config";
 
 export function HomeTab({ user }: { user: UserDoc }) {
   const [guide, setGuide] = useState(false);
   const toast = useToast();
   const { settings } = useAppSettings();
+  const tasks = useLiveTasks();
 
   const adsToday = adsTodayTotal(user);
-  const tasksDone = TASKS.filter((t) => user.tasks?.[t.id]).length;
+  const tasksDone = tasks.filter((task) => user.tasks?.[task.id]).length;
   const usdValue = user.tokens * (settings.tokenPriceUsd || TOKEN_PRICE_USD);
 
   const dayBonuses = [
@@ -123,10 +123,10 @@ export function HomeTab({ user }: { user: UserDoc }) {
             <div className="mb-1 flex justify-between text-xs">
               <span>📋 All tasks</span>
               <Num>
-                {tasksDone}/{TASKS.length}
+                {tasksDone}/{tasks.length}
               </Num>
             </div>
-            <Progress value={tasksDone} max={TASKS.length} />
+            <Progress value={tasksDone} max={Math.max(tasks.length, 1)} />
           </div>
         </div>
       </Card>
